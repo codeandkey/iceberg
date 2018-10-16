@@ -1,0 +1,490 @@
+#include "world.h"
+#include "graphics.h"
+#include "log.h"
+#include "mem.h"
+
+#include <libxml/parser.h>
+#include <libxml/tree.h>
+
+#include <libgen.h>
+
+/*
+ * this is some pretty gnarly code because iceberg tries to be
+ * compliant with many of the features offered in Tiled
+ */
+
+typedef struct {
+    int tid;
+    int duration;
+} ib_world_tile_frame;
+
+typedef struct {
+    ib_world_tile_frame* frames[IB_WORLD_MAX_TILE_FRAMES];
+    ib_graphics_texture* tex;
+    int dt_counter; /* local tracker for elapsed time mod frame duration */
+    int is_animated, frame_count, cur_frame;
+} ib_world_tile;
+
+typedef struct {
+    int offsetx, offsety, width, height;
+    unsigned int* data;
+} ib_world_layer;
+
+static struct {
+    int initialized, twidth, theight;
+    ib_world_layer* layers[IB_WORLD_MAX_LAYERS];
+    ib_world_tile* tiles[IB_WORLD_MAX_TID];
+    ib_hashmap* obj_type_map;
+    ib_object* objects;
+} _ib_world_state;
+
+static int _ib_world_load_layer(xmlNode* n);
+static int _ib_world_load_tileset(xmlNode* n);
+static void _ib_world_free_types(const char* k, void* v);
+static void _ib_world_unload(void);
+
+int ib_world_init() {
+    if (_ib_world_state.initialized) return ib_warn("already initialized");
+
+    LIBXML_TEST_VERSION
+
+    ib_zero(&_ib_world_state, sizeof _ib_world_state);
+    _ib_world_state.obj_type_map = ib_hashmap_alloc(256);
+    _ib_world_state.initialized = 1;
+
+    return ib_ok("initialized world");
+}
+
+void ib_world_free() {
+    if (!_ib_world_state.initialized) {
+        ib_warn("not initialized");
+        return;
+    }
+
+    xmlCleanupParser();
+    _ib_world_unload();
+
+    ib_hashmap_foreach(_ib_world_state.obj_type_map, _ib_world_free_types);
+    ib_hashmap_free(_ib_world_state.obj_type_map);
+}
+
+int ib_world_load(const char* path) {
+    xmlDoc* doc;
+    xmlNode *root, *cur;
+
+    if (!(doc = xmlReadFile(path, NULL, 0))) return ib_err("failed to parse %s", path);
+
+    root = xmlDocGetRootElement(doc);
+    if (root->type != XML_ELEMENT_NODE) return ib_err("invalid root element");
+    if (strcmp((char*) root->name, "map")) return ib_err("unexpected root element type %s", root->name);
+
+    char* prop_twidth = (char*) xmlGetProp(root, (const xmlChar*) "tilewidth");
+    char* prop_theight = (char*) xmlGetProp(root, (const xmlChar*) "tileheight");
+
+    _ib_world_state.twidth = strtol(prop_twidth, NULL, 10);
+    _ib_world_state.theight = strtol(prop_theight, NULL, 10);
+
+    ib_ok("tile dimensions: %s x %s", prop_twidth, prop_theight);
+
+    xmlFree(prop_twidth);
+    xmlFree(prop_theight);
+
+    /* looks like it could be a reasonable world, unload the current one */
+    _ib_world_unload();
+
+    /* do root parsing here */
+    for (cur = root->children; cur; cur = cur->next) {
+        if (cur->type != XML_ELEMENT_NODE) continue;
+        ib_ok("root element child: %s", cur->name);
+
+        if (!strcmp((char*) cur->name, "layer")) {
+            _ib_world_load_layer(cur);
+        }
+
+        if (!strcmp((char*) cur->name, "tileset")) {
+            _ib_world_load_tileset(cur);
+        }
+    }
+
+    xmlFreeDoc(doc);
+    return ib_ok("loaded %s", path);
+}
+
+int _ib_world_load_layer(xmlNode* n) {
+    /* try and load up a world layer from an xml node */
+
+    char* prop_id = (char*) xmlGetProp(n, (const xmlChar*) "id");
+    char* prop_width = (char*) xmlGetProp(n, (const xmlChar*) "width");
+    char* prop_height = (char*) xmlGetProp(n, (const xmlChar*) "height");
+    char* prop_offsetx = (char*) xmlGetProp(n, (const xmlChar*) "offsetx");
+    char* prop_offsety = (char*) xmlGetProp(n, (const xmlChar*) "offsety");
+
+    if (!(prop_id && prop_width && prop_height)) return ib_err("invalid layer properties");
+
+    int id = strtol(prop_id, NULL, 10);
+    int width = strtol(prop_width, NULL, 10);
+    int height = strtol(prop_height, NULL, 10);
+    int offsetx = prop_offsetx ? strtol(prop_offsetx, NULL, 10) : 0;
+    int offsety = prop_offsety ? strtol(prop_offsety, NULL, 10) : 0;
+
+    xmlFree(prop_id);
+    xmlFree(prop_width);
+    xmlFree(prop_height);
+    xmlFree(prop_offsetx);
+    xmlFree(prop_offsety);
+
+    if (_ib_world_state.layers[id]) return ib_err("duplicate layer id %d", id);
+
+    ib_world_layer* target = ib_malloc(sizeof *target);
+
+    target->width = width;
+    target->height = height;
+    target->offsetx = offsetx;
+    target->offsety = offsety;
+
+    target->data = ib_malloc(width * height * sizeof *target->data); /* store in row-major order starting from the top-left */
+
+    /* look for some data */
+    int loaded = 0;
+    for (xmlNode* c = n->children; c; c = c->next) {
+        if (!strcmp((char*) c->name, "data")) {
+            /* make sure the encoding is right */
+            const char* encoding = (const char*) xmlGetProp(c, (const xmlChar*) "encoding");
+            if (!encoding) encoding = "none";
+
+            if (strcmp(encoding, "csv")) {
+                ib_free(target);
+                return ib_err("unsupported encoding");
+            }
+
+            char* content = (char*) xmlNodeGetContent(c);
+
+            /* parse the csv into the target data */
+            int pos = 0;
+            for (char* cv = strtok(content, ","); cv; cv = strtok(NULL, ",")) {
+                if (pos >= width * height) {
+                    ib_warn("layer data too large?");
+                    break;
+                }
+
+                target->data[pos++] = strtol(cv, NULL, 10);
+            }
+
+            xmlFree(content);
+
+            loaded = 1;
+            break;
+        }
+    }
+
+    if (!loaded) {
+        ib_free(target);
+        return ib_err("failed loading layer data for %d", id);
+    }
+
+    _ib_world_state.layers[id] = target;
+    return ib_ok("loaded layer %d", id);
+}
+
+int _ib_world_load_tileset(xmlNode* n) {
+    /* try and load up a tileset from an xml node */
+
+    char* prop_firstgid = (char*) xmlGetProp(n, (const xmlChar*) "firstgid");
+    if (!prop_firstgid) return ib_err("no first gid in tileset");
+
+    int firstgid = strtol(prop_firstgid, NULL, 10);
+
+    for (xmlNode* t = n->children; t; t = t->next) {
+        if (strcmp((char*) t->name, "tile")) continue;
+
+        char* prop_tid = (char*) xmlGetProp(t, (const xmlChar*) "id");
+
+        if (!prop_tid) {
+            ib_warn("tile missing id! skipping");
+            continue;
+        }
+
+        int tid = strtol(prop_tid, NULL, 10) + firstgid;
+        xmlFree(prop_tid);
+
+        if (_ib_world_state.tiles[tid]) {
+            ib_warn("duplicate tile ID %d, skipping", tid);
+            continue;
+        }
+
+        ib_world_tile* target = ib_malloc(sizeof *target);
+        ib_zero(target, sizeof *target);
+
+        int fail = 1; /* if something goes wrong with loading */
+
+        /* look for animations or images */
+        for (xmlNode* c = t->children; c; c = c->next) {
+            if (!strcmp((char*) c->name, "image")) {
+                /* try and load up a texture */
+                char* source = (char*) xmlGetProp(c, (const xmlChar*) "source");
+
+                if (!source) {
+                    ib_warn("tile image missing source");
+                    continue;
+                }
+
+                ib_warn("loading source for tile %d : %s", tid, source);
+
+                char* bn = basename(source);
+
+                ib_warn("basename %s", bn);
+
+                /* tiled paths are gonna be messy, just grab the basename */
+                char* full_path = ib_malloc(strlen(bn) + strlen(IB_GRAPHICS_TEX_PREFIX) + 1);
+
+                /* looks unsafe but the buffer has an appropriate size */
+                *full_path = 0;
+                strcat(full_path, IB_GRAPHICS_TEX_PREFIX);
+                strcat(full_path, bn);
+
+                target->tex = ib_graphics_get_texture(full_path);
+                ib_free(full_path);
+                xmlFree(source);
+
+                fail = 0;
+                continue;
+            }
+
+            if (!strcmp((char*) c->name, "animation")) {
+                if (target->is_animated) {
+                    ib_warn("unexpected animation, tile already has animation");
+                    continue;
+                }
+
+                /* load an animation, set tile flag as well */
+                for (xmlNode* frame = c->children; frame; frame = frame->next) {
+                    if (strcmp((char*) frame->name, "frame")) continue;
+
+                    char* prop_tileid = (char*) xmlGetProp(frame, (const xmlChar*) "tileid");
+                    char* prop_duration = (char*) xmlGetProp(frame, (const xmlChar*) "duration");
+
+                    if (!(prop_tileid && prop_duration)) {
+                        ib_warn("frame missing parameters");
+                        continue;
+                    }
+
+                    ib_world_tile_frame* target_frame = ib_malloc(sizeof *target_frame);
+                    target_frame->tid = strtol(prop_tileid, NULL, 10) + firstgid;
+                    target_frame->duration = strtol(prop_duration, NULL, 10);
+
+                    target->frames[target->frame_count++] = target_frame;
+
+                    xmlFree(prop_tileid);
+                    xmlFree(prop_duration);
+                }
+
+                if (!target->frame_count) {
+                    ib_err("no frames in tile animation! ignoring");
+                    continue;
+                }
+
+                fail = 0;
+                target->is_animated = 1;
+                continue;
+            }
+        }
+
+        if (fail) {
+            ib_free(target);
+            ib_warn("failed loading tile data for %d", tid);
+            continue;
+        }
+
+        _ib_world_state.tiles[tid] = target;
+    }
+
+    return ib_ok("loaded tileset");
+}
+
+void _ib_world_unload(void) {
+    /* unload active tiles + layers, objects */
+    ib_world_destroy_all();
+
+    for (int i = 0; i < IB_WORLD_MAX_LAYERS; ++i) {
+        ib_world_layer* cur = _ib_world_state.layers[i];
+
+        if (cur) {
+            ib_free(cur->data);
+            ib_free(cur);
+            _ib_world_state.layers[i] = NULL;
+        }
+    }
+
+    for (int i = 0; i < IB_WORLD_MAX_TID; ++i) {
+        ib_world_tile* t = _ib_world_state.tiles[i];
+
+        if (t) {
+            for (int k = 0; k < IB_WORLD_MAX_TILE_FRAMES; ++k) {
+                ib_world_tile_frame* f = t->frames[k];
+
+                if (f) {
+                    ib_free(t->frames[k]);
+                    t->frames[k] = NULL;
+                }
+            }
+
+            ib_graphics_drop_texture(t->tex);
+            ib_free(t);
+            _ib_world_state.tiles[i] = NULL;
+        }
+    }
+}
+
+void ib_world_render() {
+    for (int i = 0; i < IB_WORLD_MAX_LAYERS; ++i) {
+        ib_world_render_layer(i);
+    }
+}
+
+void ib_world_render_layer(int layer) {
+    ib_world_layer* src = _ib_world_state.layers[layer];
+    ib_graphics_point pos;
+
+    ib_graphics_set_space(IB_GRAPHICS_WORLDSPACE);
+
+    if (!src) return;
+
+    for (int yi = 0; yi < src->height; ++yi) {
+        pos.y = yi * _ib_world_state.theight;
+
+        for (int xi = 0; xi < src->width; ++xi) {
+            ib_world_tile* t = _ib_world_state.tiles[src->data[yi * src->width + xi]];
+            if (!t) continue;
+
+            pos.x = xi * _ib_world_state.twidth;
+
+            if (t->is_animated) {
+                ib_graphics_draw_texture(_ib_world_state.tiles[t->frames[t->cur_frame]->tid]->tex, pos);
+            } else {
+                ib_graphics_draw_texture(t->tex, pos);
+            }
+        }
+    }
+}
+
+void ib_world_update_animations(int dt) {
+    for (int i = 0; i < IB_WORLD_MAX_TID; ++i) {
+        ib_world_tile* t = _ib_world_state.tiles[i];
+        if (!t) continue;
+        if (!t->is_animated) continue;
+
+        t->dt_counter += dt;
+
+        while (t->frames[t->cur_frame]->duration <= t->dt_counter) {
+            t->dt_counter -= t->frames[t->cur_frame]->duration;
+            t->cur_frame = (t->cur_frame + 1) % t->frame_count;
+        }
+    }
+}
+
+static void _ib_world_free_types(const char* k, void* v) {
+    ib_object_type* t = (ib_object_type*) v;
+    free(t->name);
+    ib_free(v);
+}
+
+void ib_world_bind_object(const char* type, ib_object_fn init, ib_object_fn destroy) {
+    ib_object_type* t = ib_hashmap_get(_ib_world_state.obj_type_map, type);
+
+    if (t) {
+        ib_warn("duplicate object type %s, ignoring", type);
+        return;
+    }
+
+    t = ib_malloc(sizeof *t);
+
+    t->name = strdup(type);
+    t->init = init;
+    t->destroy = destroy;
+
+    ib_hashmap_set(_ib_world_state.obj_type_map, type, t);
+    ib_ok("bound object type %s", type);
+}
+
+ib_object* ib_world_create_object(const char* type, const char* name, ib_hashmap* props) {
+    ib_object_type* t = ib_hashmap_get(_ib_world_state.obj_type_map, type);
+
+    if (!t) {
+        ib_warn("unknown object type %s", type);
+        return NULL;
+    }
+
+    ib_object* obj = ib_malloc(sizeof *obj);
+    ib_zero(obj, sizeof *obj);
+
+    if (name) {
+        obj->inst_name = strdup(name);
+    }
+
+    obj->props = props;
+    obj->t = t;
+    obj->next = _ib_world_state.objects;
+    if (obj->next) obj->next->prev = obj;
+    obj->prev = NULL;
+    _ib_world_state.objects = obj;
+
+    obj->t->init(obj);
+    return obj;
+}
+
+void ib_world_destroy_object(ib_object* obj) {
+    if (obj->next) {
+        obj->next->prev = obj->prev;
+    }
+
+    if (obj->prev) {
+        obj->prev->next = obj->next;
+    } else {
+        _ib_world_state.objects = NULL;
+    }
+
+    obj->t->destroy(obj);
+    if (obj->props) ib_hashmap_free(obj->props);
+    if (obj->inst_name) free(obj->inst_name);
+
+    ib_free(obj);
+}
+
+void ib_world_destroy_all() {
+    /* flush all objects out */
+    ib_object* cur = _ib_world_state.objects, *tmp;
+
+    while (cur) {
+        cur->t->destroy(cur);
+
+        if (cur->props) ib_hashmap_free(cur->props);
+        if (cur->inst_name) free(cur->inst_name);
+
+        tmp = cur->next;
+        ib_free(cur);
+        cur = tmp;
+    }
+
+    _ib_world_state.objects = NULL;
+}
+
+int ib_object_get_prop_int(ib_object* p, const char* key, int def) {
+    if (!p || !p->props) return def;
+    char* prop = ib_hashmap_get(p->props, key);
+    if (!prop) return def;
+    return strtol(prop, NULL, 10);
+}
+
+double ib_object_get_prop_scalar(ib_object* p, const char* key, double def) {
+    if (!p || !p->props) return def;
+    char* prop = ib_hashmap_get(p->props, key);
+    if (!prop) return def;
+    return strtod(prop, NULL);
+}
+
+char* ib_object_get_prop_str(ib_object* p, const char* key, char* def) {
+    if (!p || !p->props) return def;
+    char* prop = ib_hashmap_get(p->props, key);
+    if (!prop) return def;
+    return prop;
+}
