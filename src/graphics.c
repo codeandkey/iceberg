@@ -31,7 +31,8 @@ int ib_graphics_init(void) {
     _ib_graphics_state.width = ib_config_get_int(IB_CONFIG_GRAPHICS_WIDTH, IB_GRAPHICS_DEF_WIDTH);
     _ib_graphics_state.height = ib_config_get_int(IB_CONFIG_GRAPHICS_HEIGHT, IB_GRAPHICS_DEF_HEIGHT);
     _ib_graphics_state.fs = ib_config_get_int(IB_CONFIG_GRAPHICS_FS, IB_GRAPHICS_DEF_FULLSCREEN);
-    _ib_graphics_state.camera_x = _ib_graphics_state.camera_y = 0;
+    _ib_graphics_state.camera_x = _ib_graphics_state.camera_y = 100;
+    _ib_graphics_state.space = IB_GRAPHICS_WORLDSPACE;
 
     int flags = 0;
 
@@ -47,6 +48,8 @@ int ib_graphics_init(void) {
                                     &_ib_graphics_state.renderer) < 0) {
         return ib_err("SDL window/renderer init failed");
     }
+
+    SDL_SetHint(SDL_HINT_RENDER_SCALE_QUALITY, "0");
 
     _ib_graphics_state.initialized = 1;
     return ib_ok("initialized graphics");
@@ -166,4 +169,9 @@ void ib_graphics_set_camera(int x, int y) {
 void ib_graphics_get_camera(int* x, int* y) {
     if (x) *x = _ib_graphics_state.camera_x;
     if (y) *y = _ib_graphics_state.camera_y;
+}
+
+void ib_graphics_get_size(int* w, int* h) {
+    if (w) *w = _ib_graphics_state.width;
+    if (h) *h = _ib_graphics_state.height;
 }

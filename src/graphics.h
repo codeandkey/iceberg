@@ -44,6 +44,7 @@ void ib_graphics_drop_texture(ib_graphics_texture* p); /* reference counted */
 
 void ib_graphics_set_camera(int x, int y);
 void ib_graphics_get_camera(int* x, int* y);
+void ib_graphics_get_size(int* w, int* h);
 void ib_graphics_set_color(ib_graphics_color c);
 
 void ib_graphics_set_space(int space); /* define coordinate transformation -- screenspace or worldspace */

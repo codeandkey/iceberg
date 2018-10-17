@@ -26,9 +26,9 @@ void obj_snow_init(ib_object* p) {
     d->flakes[1] = ib_graphics_get_texture(IB_GRAPHICS_TEXFILE("snowflake2"));
     d->flakes[2] = ib_graphics_get_texture(IB_GRAPHICS_TEXFILE("snowflake3"));
 
-    int cx, cy;
-    int vpw = 800, vph = 600; /* TODO: query dynamically */
+    int cx, cy, vpw, vph;
     ib_graphics_get_camera(&cx, &cy);
+    ib_graphics_get_size(&vpw, &vph);
 
     for (int i = 0; i < OBJ_SNOW_NUM_PARTS; ++i) {
         d->parts[i].x = rand() % vpw + cx;
@@ -47,9 +47,9 @@ void obj_snow_init(ib_object* p) {
 int obj_snow_evt(ib_event* e, void* ed) {
     obj_snow* d = ed;
 
-    int cx, cy;
-    int vpw = 800, vph = 600; /* TODO: query dynamically */
+    int cx, cy, vpw, vph;
     ib_graphics_get_camera(&cx, &cy);
+    ib_graphics_get_size(&vpw, &vph);
 
     switch (e->type) {
     case IB_EVT_UPDATE:
@@ -62,10 +62,10 @@ int obj_snow_evt(ib_event* e, void* ed) {
                 d->parts[i].y += d->parts[i].dy * dt_sec;
                 d->parts[i].rot += d->parts[i].drot * dt_sec;
 
-                if (d->parts[i].x < cx) d->parts[i].x += vpw;
+                if (d->parts[i].x + d->flakes[d->parts[i].type]->size.x < cx) d->parts[i].x += vpw;
                 if (d->parts[i].y < cy) d->parts[i].y += vph;
                 if (d->parts[i].x > cx + vpw) d->parts[i].x -= vpw;
-                if (d->parts[i].y > cy + vph + 10) d->parts[i].y -= (vph + 10);
+                if (d->parts[i].y - d->flakes[d->parts[i].type]->size.y > cy + vph + 10) d->parts[i].y -= (vph + 10);
             }
         }
         break;

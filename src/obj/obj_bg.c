@@ -36,6 +36,8 @@ int obj_bg_evt(ib_event* e, void* d) {
 
     ib_graphics_point pos = {0};
 
+    ib_graphics_set_space(IB_GRAPHICS_SCREENSPACE);
+
     switch (e->type) {
     case IB_EVT_DRAW:
         ib_graphics_draw_texture(self->img, pos);

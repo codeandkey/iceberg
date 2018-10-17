@@ -10,6 +10,7 @@
 #include "obj/obj.h"
 
 static int _ib_game_should_quit;
+static int _ib_game_keys[2048];
 
 int _ib_game_key_handler(ib_event* e, void* d) {
     ib_input_event* ie = (ib_input_event*) e->evt;
@@ -19,7 +20,41 @@ int _ib_game_key_handler(ib_event* e, void* d) {
         ib_event_add(IB_EVT_QUIT, NULL, 0);
     }
 
+    if (ie->type == IB_INPUT_EVT_KEYDOWN) {
+        _ib_game_keys[ie->scancode] = 1;
+    }
+
+    if (ie->type == IB_INPUT_EVT_KEYUP) {
+        _ib_game_keys[ie->scancode] = 0;
+    }
+
     return 0;
+}
+
+int _ib_game_update_handler(ib_event* e, void* d) {
+    ib_event_update* u = e->evt;
+    float dt_s = u->dt / 1000.0f;
+
+    int cx, cy;
+    ib_graphics_get_camera(&cx, &cy);
+
+    if (_ib_game_keys[SDL_SCANCODE_LEFT]) {
+        cx -= (dt_s * 50.0f) + 1;
+    }
+
+    if (_ib_game_keys[SDL_SCANCODE_RIGHT]) {
+        cx += (dt_s * 50.0f) + 1;
+    }
+
+    if (_ib_game_keys[SDL_SCANCODE_UP]) {
+        cy -= (dt_s * 50.0f) + 1;
+    }
+
+    if (_ib_game_keys[SDL_SCANCODE_DOWN]) {
+        cy += (dt_s * 50.0f) + 1;
+    }
+
+    ib_graphics_set_camera(cx, cy);
 }
 
 int _ib_game_quit_handler(ib_event* e, void* d) {
@@ -48,24 +83,20 @@ int ib_game_init(void) {
     /* register quit event */
     ib_event_subscribe(IB_EVT_QUIT, _ib_game_quit_handler, NULL);
 
+    ib_event_subscribe(IB_EVT_UPDATE, _ib_game_update_handler, NULL);
+
     /* start bgm */
     ib_audio_bgm_add(IB_AUDIO_AUDIOFILE("bgm"));
 
     /* create test object */
     ib_world_create_object("snow", NULL, NULL);
+    ib_world_create_object("fog", NULL, NULL);
+
     ib_hashmap* tprops = ib_hashmap_alloc(4);
     ib_hashmap_set(tprops, "echo", "obj_test test message!");
     ib_world_create_object("test", NULL, tprops);
 
-
-    ib_hashmap* nprops = ib_hashmap_alloc(4);
-    ib_hashmap_set(nprops, "img", IB_GRAPHICS_TEXFILE("mist"));
-    ib_world_create_object("bg", NULL, nprops);
-
     ib_world_create_object("bg", NULL, NULL);
-
-    //ib_audio_source* s= ib_audio_source_load(IB_AUDIO_AUDIOFILE("bgm"));
-    //ib_audio_source_play(s);
 
     return ib_ok("initialized game");
 }
@@ -84,11 +115,7 @@ void ib_game_free(void) {
 int ib_game_run(void) {
     ib_ok("starting main loop");
 
-    ib_graphics_texture* er = ib_graphics_get_texture(IB_GRAPHICS_ERROR_TEX);
-    ib_graphics_point pos = { 0, 0 };
-
     uint32_t ticks, frame_dt;
-
     ticks = SDL_GetTicks();
 
     _ib_game_should_quit = 0;
@@ -108,13 +135,10 @@ int ib_game_run(void) {
         ib_event_add(IB_EVT_UPDATE, &ud, sizeof ud);
         ib_event_work();
 
-        ib_graphics_draw_texture(er, pos);
         ib_world_update_animations(frame_dt);
         ib_world_render();
         ib_graphics_swap();
     }
-
-    ib_graphics_drop_texture(er);
 
     return ib_ok("terminating main loop");
 }

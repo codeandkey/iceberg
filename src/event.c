@@ -47,7 +47,7 @@ int ib_event_subscribe(int type, ib_event_cb cb, void* d) {
     s->next = _ib_event_subs[type];
 
     _ib_event_subs[type] = s;
-    return 0;
+    return s->id;
 }
 
 int ib_event_unsubscribe(int id) {

@@ -29,7 +29,7 @@ int ib_config_init(void) {
 
     while (fgets(buf, sizeof buf, in)) {
         char* key = strtok(buf, "= ");
-        char* value = strtok(buf, "\n");
+        char* value = strtok(NULL, " =\n");
 
         if (!key || !value || !strlen(key) || !strlen(value)) continue;
 
@@ -39,6 +39,8 @@ int ib_config_init(void) {
         n->next = _ib_config_rows;
         strncpy(n->key, key, IB_CONFIG_BUFLEN - 1);
         strncpy(n->value, value, IB_CONFIG_BUFLEN - 1);
+
+        ib_ok("[%s] = [%s]", n->key, n->value);
 
         _ib_config_rows = n;
         ++count;
