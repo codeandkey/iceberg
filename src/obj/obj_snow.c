@@ -26,13 +26,12 @@ void obj_snow_init(ib_object* p) {
     d->flakes[1] = ib_graphics_get_texture(IB_GRAPHICS_TEXFILE("snowflake2"));
     d->flakes[2] = ib_graphics_get_texture(IB_GRAPHICS_TEXFILE("snowflake3"));
 
-    int cx, cy, vpw, vph;
+    int cx, cy;
     ib_graphics_get_camera(&cx, &cy);
-    ib_graphics_get_size(&vpw, &vph);
 
     for (int i = 0; i < OBJ_SNOW_NUM_PARTS; ++i) {
-        d->parts[i].x = rand() % vpw + cx;
-        d->parts[i].y = rand() % vph + cy;
+        d->parts[i].x = rand() % IB_GRAPHICS_WIDTH + cx;
+        d->parts[i].y = rand() % IB_GRAPHICS_HEIGHT + cy;
         d->parts[i].type = rand() % 3;
         d->parts[i].dx = rand() % 17 - 8;
         d->parts[i].dy = rand() % 25 + 20;
@@ -47,9 +46,8 @@ void obj_snow_init(ib_object* p) {
 int obj_snow_evt(ib_event* e, void* ed) {
     obj_snow* d = ed;
 
-    int cx, cy, vpw, vph;
+    int cx, cy, vpw = IB_GRAPHICS_WIDTH, vph = IB_GRAPHICS_HEIGHT;
     ib_graphics_get_camera(&cx, &cy);
-    ib_graphics_get_size(&vpw, &vph);
 
     switch (e->type) {
     case IB_EVT_UPDATE:

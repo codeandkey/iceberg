@@ -84,6 +84,7 @@ int ib_world_load(const char* path) {
     _ib_world_state.twidth = strtol(prop_twidth, NULL, 10);
     _ib_world_state.theight = strtol(prop_theight, NULL, 10);
 
+    ib_ok("loading %s..", path);
     ib_ok("tile dimensions: %s x %s", prop_twidth, prop_theight);
 
     xmlFree(prop_twidth);
@@ -95,7 +96,6 @@ int ib_world_load(const char* path) {
     /* do root parsing here */
     for (cur = root->children; cur; cur = cur->next) {
         if (cur->type != XML_ELEMENT_NODE) continue;
-        ib_ok("root element child: %s", cur->name);
 
         if (!strcmp((char*) cur->name, "layer")) {
             _ib_world_load_layer(cur);
@@ -228,11 +228,7 @@ int _ib_world_load_tileset(xmlNode* n) {
                     continue;
                 }
 
-                ib_warn("loading source for tile %d : %s", tid, source);
-
                 char* bn = basename(source);
-
-                ib_warn("basename %s", bn);
 
                 /* tiled paths are gonna be messy, just grab the basename */
                 char* full_path = ib_malloc(strlen(bn) + strlen(IB_GRAPHICS_TEX_PREFIX) + 1);

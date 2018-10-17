@@ -56,8 +56,6 @@ void ib_hashmap_set(ib_hashmap* p, const char* key, void* value) {
     n->value = value;
     n->next = *root;
 
-    ib_warn("allocated new hashmap entry: %s = %p", n->key, n->value);
-
     *root = n;
 }
 

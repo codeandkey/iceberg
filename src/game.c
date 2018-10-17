@@ -55,6 +55,7 @@ int _ib_game_update_handler(ib_event* e, void* d) {
     }
 
     ib_graphics_set_camera(cx, cy);
+    return 0;
 }
 
 int _ib_game_quit_handler(ib_event* e, void* d) {
@@ -77,26 +78,10 @@ int ib_game_init(void) {
 
     if (ib_world_load(IB_WORLD_DEFAULT)) return ib_err("default world failed");
 
-    /* register global key handler */
+    /* register global event handlers */
     ib_event_subscribe(IB_EVT_INPUT, _ib_game_key_handler, NULL);
-
-    /* register quit event */
     ib_event_subscribe(IB_EVT_QUIT, _ib_game_quit_handler, NULL);
-
     ib_event_subscribe(IB_EVT_UPDATE, _ib_game_update_handler, NULL);
-
-    /* start bgm */
-    ib_audio_bgm_add(IB_AUDIO_AUDIOFILE("bgm"));
-
-    /* create test object */
-    ib_world_create_object("snow", NULL, NULL);
-    ib_world_create_object("fog", NULL, NULL);
-
-    ib_hashmap* tprops = ib_hashmap_alloc(4);
-    ib_hashmap_set(tprops, "echo", "obj_test test message!");
-    ib_world_create_object("test", NULL, tprops);
-
-    ib_world_create_object("bg", NULL, NULL);
 
     return ib_ok("initialized game");
 }

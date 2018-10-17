@@ -8,8 +8,7 @@
 #include <SDL2/SDL_image.h>
 
 static struct {
-    int initialized;
-    int width, height, fs;
+    int initialized, fs;
     SDL_Window* win;
     SDL_Renderer* renderer;
     ib_hashmap* texmap;
@@ -28,8 +27,6 @@ int ib_graphics_init(void) {
 
     _ib_graphics_state.texmap = ib_hashmap_alloc(256);
 
-    _ib_graphics_state.width = ib_config_get_int(IB_CONFIG_GRAPHICS_WIDTH, IB_GRAPHICS_DEF_WIDTH);
-    _ib_graphics_state.height = ib_config_get_int(IB_CONFIG_GRAPHICS_HEIGHT, IB_GRAPHICS_DEF_HEIGHT);
     _ib_graphics_state.fs = ib_config_get_int(IB_CONFIG_GRAPHICS_FS, IB_GRAPHICS_DEF_FULLSCREEN);
     _ib_graphics_state.camera_x = _ib_graphics_state.camera_y = 100;
     _ib_graphics_state.space = IB_GRAPHICS_WORLDSPACE;
@@ -41,13 +38,15 @@ int ib_graphics_init(void) {
     }
 
 
-    if (SDL_CreateWindowAndRenderer(_ib_graphics_state.width,
-                                    _ib_graphics_state.height,
+    if (SDL_CreateWindowAndRenderer(IB_GRAPHICS_WIDTH,
+                                    IB_GRAPHICS_HEIGHT,
                                     flags,
                                     &_ib_graphics_state.win,
                                     &_ib_graphics_state.renderer) < 0) {
         return ib_err("SDL window/renderer init failed");
     }
+
+    SDL_RenderSetLogicalSize(_ib_graphics_state.renderer, IB_GRAPHICS_WIDTH, IB_GRAPHICS_HEIGHT);
 
     SDL_SetHint(SDL_HINT_RENDER_SCALE_QUALITY, "0");
 
@@ -118,8 +117,6 @@ ib_graphics_texture* ib_graphics_get_texture(const char* path) {
 
 void ib_graphics_drop_texture(ib_graphics_texture* p) {
     if (p && !--p->refs) {
-        ib_warn("dropping texture %s", p->path);
-
         SDL_DestroyTexture(p->tex);
         ib_hashmap_drop(_ib_graphics_state.texmap, p->path);
         ib_free(p->path);
@@ -169,9 +166,4 @@ void ib_graphics_set_camera(int x, int y) {
 void ib_graphics_get_camera(int* x, int* y) {
     if (x) *x = _ib_graphics_state.camera_x;
     if (y) *y = _ib_graphics_state.camera_y;
-}
-
-void ib_graphics_get_size(int* w, int* h) {
-    if (w) *w = _ib_graphics_state.width;
-    if (h) *h = _ib_graphics_state.height;
 }

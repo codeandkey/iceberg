@@ -28,9 +28,8 @@ void obj_fog_init(ib_object* p) {
 int obj_fog_evt(ib_event* e, void* d) {
     obj_fog* self = d;
 
-    int cx, cy, cw, ch;
+    int cx, cy, cw = IB_GRAPHICS_WIDTH, ch = IB_GRAPHICS_HEIGHT;
     ib_graphics_get_camera(&cx, &cy);
-    ib_graphics_get_size(&cw, &ch);
 
     switch (e->type) {
     case IB_EVT_DRAW:
