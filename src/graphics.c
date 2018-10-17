@@ -28,7 +28,7 @@ int ib_graphics_init(void) {
     _ib_graphics_state.texmap = ib_hashmap_alloc(256);
 
     _ib_graphics_state.fs = ib_config_get_int(IB_CONFIG_GRAPHICS_FS, IB_GRAPHICS_DEF_FULLSCREEN);
-    _ib_graphics_state.camera_x = _ib_graphics_state.camera_y = 100;
+    _ib_graphics_state.camera_x = _ib_graphics_state.camera_y = 0;
     _ib_graphics_state.space = IB_GRAPHICS_WORLDSPACE;
 
     int flags = 0;
