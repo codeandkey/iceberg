@@ -1,6 +1,7 @@
 #include "world.h"
 #include "log.h"
 #include "mem.h"
+#include "event.h"
 
 #include <libxml/parser.h>
 #include <libxml/tree.h>
@@ -35,6 +36,7 @@ static struct {
     ib_world_tile* tiles[IB_WORLD_MAX_TID];
     ib_hashmap* obj_type_map;
     ib_object* objects;
+    int subd;
 } _ib_world_state;
 
 static int _ib_world_load_layer(xmlNode* n);
@@ -44,6 +46,7 @@ static int _ib_world_col_point(ib_graphics_point p);
 static void _ib_world_free_types(const char* k, void* v);
 static void _ib_world_free_props(const char* k, void* v);
 static void _ib_world_unload(void);
+static int _ib_world_draw_callback(ib_event* e, void* d);
 
 int ib_world_init() {
     if (_ib_world_state.initialized) return ib_warn("already initialized");
@@ -53,6 +56,7 @@ int ib_world_init() {
     ib_zero(&_ib_world_state, sizeof _ib_world_state);
     _ib_world_state.obj_type_map = ib_hashmap_alloc(256);
     _ib_world_state.initialized = 1;
+    _ib_world_state.subd = ib_event_subscribe(IB_EVT_DRAW_WORLD, _ib_world_draw_callback, NULL);
 
     return ib_ok("initialized world");
 }
@@ -68,6 +72,8 @@ void ib_world_free() {
 
     ib_hashmap_foreach(_ib_world_state.obj_type_map, _ib_world_free_types);
     ib_hashmap_free(_ib_world_state.obj_type_map);
+
+    ib_event_unsubscribe(_ib_world_state.subd);
 }
 
 int ib_world_load(const char* path) {
@@ -423,6 +429,11 @@ void ib_world_render() {
     for (int i = 0; i < IB_WORLD_MAX_LAYERS; ++i) {
         ib_world_render_layer(i);
     }
+}
+
+int _ib_world_draw_callback(ib_event* e, void* d) {
+    ib_world_render();
+    return 0;
 }
 
 void ib_world_render_layer(int layer) {

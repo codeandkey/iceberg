@@ -13,7 +13,7 @@
  * for each snowflake select a y-coordinate to "drop" at
  * when we cross the y-coord we only drop if we're over land */
 
-#define OBJ_SNOW_NUM_PARTS 32
+#define OBJ_SNOW_NUM_PARTS 81
 
 typedef struct {
     int x, y, dx, dy;
@@ -89,9 +89,10 @@ int obj_snow_evt(ib_event* e, void* ed) {
                     ib_graphics_point p;
                     p.x = d->parts[i].x;
                     p.y = d->parts[i].y;
+                    d->parts[i].dropped = 1;
 
                     if (ib_world_aabb(p, d->flakes[d->parts[i].type]->size)) {
-                        d->parts[i].still = 60;
+                        d->parts[i].still = d->parts[i].dropped = 60;
                     }
                 }
 
@@ -113,7 +114,8 @@ int obj_snow_evt(ib_event* e, void* ed) {
                 pos.y = d->parts[i].y;
 
                 ib_graphics_texture* t = d->flakes[d->parts[i].type];
-                ib_graphics_draw_texture_ex(t, pos, t->size, d->parts[i].rot, 0, 0, d->parts[i].alpha);
+                float alp = d->parts[i].still ? d->parts[i].alpha * (float) d->parts[i].still / (float) d->parts[i].dropped : d->parts[i].alpha;
+                ib_graphics_draw_texture_ex(t, pos, t->size, d->parts[i].rot, 0, 0, alp);
             }
         break;
     }

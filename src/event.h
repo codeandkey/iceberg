@@ -9,6 +9,7 @@
 #define IB_EVT_QUIT 2
 #define IB_EVT_INPUT 3
 #define IB_EVT_DRAW_WEATHER 4
+#define IB_EVT_DRAW_WORLD 4
 /* end event types */
 
 typedef struct _ib_event {

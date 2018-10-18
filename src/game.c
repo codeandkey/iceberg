@@ -77,6 +77,8 @@ int ib_game_run(void) {
         ticks += dt;
 
         ib_audio_update(dt);
+        ib_world_update_animations(dt);
+
         ib_input_poll();
         ib_graphics_clear();
 
@@ -85,13 +87,12 @@ int ib_game_run(void) {
             backticks += 1000 / IB_GAME_UPDATES_PER_SEC;
         }
 
+        ib_event_add(IB_EVT_DRAW_WORLD, NULL, 0);
         ib_event_add(IB_EVT_DRAW, NULL, 0);
         ib_event_add(IB_EVT_DRAW_WEATHER, NULL, 0);
 
-        ib_world_render();
         ib_event_work();
 
-        ib_world_update_animations(dt);
         ib_graphics_swap();
     }
 
