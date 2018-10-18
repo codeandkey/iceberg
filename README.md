@@ -1,3 +1,5 @@
+![screenshot](https://github.com/molecuul/iceberg/raw/master/preview.png)
+
 ### iceberg
 iceberg is a work-in-progress game/game engine with a functional design
 
