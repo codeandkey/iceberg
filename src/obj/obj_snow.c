@@ -7,12 +7,19 @@
 /* perspective tricks
  * render one half of the snow above the world and the other half below it. */
 
+/* making the above-world snow consistently collide with the ground uniformly is actually kinda a tough problem */
+
+/* for this we can have an interesting algorithm:
+ * for each snowflake select a y-coordinate to "drop" at
+ * when we cross the y-coord we only drop if we're over land */
+
 #define OBJ_SNOW_NUM_PARTS 32
 
 typedef struct {
     int x, y, dx, dy;
     float rot, drot, alpha;
     int type;
+    int y_drop, dropped, still;
 } obj_snow_flake;
 
 typedef struct {
@@ -41,6 +48,9 @@ void obj_snow_init(ib_object* p) {
         d->parts[i].rot = ((rand() % 100) / 99.0f) * 3.141f * 2.0f;
         d->parts[i].drot = ((rand() % 100) / 99.0f) * 30.0f - 15.0f;
         d->parts[i].alpha = (rand() % 100) / 140.0f;
+        d->parts[i].y_drop = cy + (rand() % IB_GRAPHICS_HEIGHT);
+        d->parts[i].dropped = 0;
+        d->parts[i].still = 0;
     }
 
     ib_event_subscribe(IB_EVT_DRAW, obj_snow_evt, d);
@@ -57,18 +67,45 @@ int obj_snow_evt(ib_event* e, void* ed) {
     case IB_EVT_UPDATE:
         {
             for (int i = 0; i < OBJ_SNOW_NUM_PARTS; ++i) {
+                if (d->parts[i].still) {
+                    if (!--d->parts[i].still) {
+                        /* reset dropped particle */
+                        d->parts[i].y = -10;
+                        d->parts[i].y_drop = cy + rand() % vph;
+                        d->parts[i].dropped = 0;
+                        d->parts[i].x = rand() % vph;
+                    }
+                    continue;
+                }
+
                 d->parts[i].x += d->parts[i].dx;
                 d->parts[i].y += d->parts[i].dy;
                 d->parts[i].rot += d->parts[i].drot;
 
                 if (d->parts[i].x + d->flakes[d->parts[i].type]->size.x < cx) d->parts[i].x += vpw;
-                if (d->parts[i].y < cy) d->parts[i].y += vph;
                 if (d->parts[i].x > cx + vpw) d->parts[i].x -= vpw;
-                if (d->parts[i].y - d->flakes[d->parts[i].type]->size.y > cy + vph + 10) d->parts[i].y -= (vph + 10);
+
+                if ((d->parts[i].y > d->parts[i].y_drop) && !d->parts[i].dropped) {
+                    ib_graphics_point p;
+                    p.x = d->parts[i].x;
+                    p.y = d->parts[i].y;
+
+                    if (ib_world_aabb(p, d->flakes[d->parts[i].type]->size)) {
+                        d->parts[i].still = 60;
+                    }
+                }
+
+                if (d->parts[i].y > cy + vph) {
+                    d->parts[i].y = cy - 10;
+                    d->parts[i].x = cx + rand() % vpw;
+                    d->parts[i].y_drop = cy + rand() % vph;
+                }
             }
         }
         break;
     case IB_EVT_DRAW:
+            ib_graphics_set_space(IB_GRAPHICS_WORLDSPACE);
+
             for (int i = 0; i < OBJ_SNOW_NUM_PARTS; ++i) {
                 ib_graphics_point pos;
 
