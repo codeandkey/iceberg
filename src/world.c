@@ -102,7 +102,7 @@ int ib_world_load(const char* path) {
             _ib_world_load_layer(cur);
         }
 
-        if (!strcmp((char*) cur->name, "objectlayer")) {
+        if (!strcmp((char*) cur->name, "objectgroup")) {
             _ib_world_load_objlayer(cur);
         }
 
@@ -155,8 +155,8 @@ int _ib_world_load_objlayer(xmlNode* n) {
         size.x = strtol(prop_width, NULL, 10);
         size.y = strtol(prop_height, NULL, 10);
 
-        int visible = strtol(prop_visible, NULL, 10);
-        float angle = strtof(prop_rotation, NULL);
+        int visible = prop_visible ? strtol(prop_visible, NULL, 10) : 1;
+        float angle = prop_rotation ? strtof(prop_rotation, NULL) : 0.0f;
 
         ib_object* obj = ib_world_create_object(prop_type, prop_name, obj_props, pos, size, angle, visible);
 
