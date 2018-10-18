@@ -135,6 +135,16 @@ int ib_world_aabb(ib_graphics_point pos, ib_graphics_point size) {
     return ib_world_col_point(pos);
 }
 
+int ib_world_contains(ib_graphics_point pos, ib_graphics_point size) {
+    if (!ib_world_col_point(pos)) return 0;
+    pos.x += size.x;
+    if (!ib_world_col_point(pos)) return 0;
+    pos.y += size.y;
+    if (!ib_world_col_point(pos)) return 0;
+    pos.x -= size.x;
+    return ib_world_col_point(pos);
+}
+
 int ib_world_col_point(ib_graphics_point p) {
     int ptx = p.x / _ib_world_state.twidth, pty = p.y / _ib_world_state.theight;
     return _ib_world_state.layers[1]->data[pty * _ib_world_state.width + ptx];

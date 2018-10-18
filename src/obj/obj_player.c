@@ -9,6 +9,7 @@
 #define OBJ_PLAYER_TEXTURE IB_GRAPHICS_TEXFILE("player")
 #define OBJ_PLAYER_SPEED_Y 2 /* !! 3 dimensions! */
 #define OBJ_PLAYER_SPEED_X 3
+#define OBJ_PLAYER_BASE_HEIGHT 12
 
 typedef struct {
     ib_graphics_texture* tex;
@@ -34,26 +35,26 @@ int obj_player_evt(ib_event* e, void* d) {
     switch (e->type) {
     case IB_EVT_UPDATE:
         {
-            ib_graphics_point orig = obj->pos, cur = orig, bl = cur, br = cur;
+            ib_graphics_point orig = obj->pos, base_pos = orig;
             int xdir = OBJ_PLAYER_SPEED_X * (ib_input_get_key(SDL_SCANCODE_RIGHT) - ib_input_get_key(SDL_SCANCODE_LEFT)); /* sneaky logic */
             int ydir = OBJ_PLAYER_SPEED_Y * (ib_input_get_key(SDL_SCANCODE_DOWN) - ib_input_get_key(SDL_SCANCODE_UP));
 
-            bl.x = orig.x + xdir;
-            bl.y = orig.y + obj->size.y;
-            br = bl;
-            br.x += obj->size.x;
+            ib_graphics_point base_size;
+            base_size.x = obj->size.x;
+            base_size.y = OBJ_PLAYER_BASE_HEIGHT;
 
-            if (ib_world_col_point(bl) && ib_world_col_point(br)) {
+            base_pos.x += xdir;
+            base_pos.y += obj->size.y - OBJ_PLAYER_BASE_HEIGHT;
+
+            if (ib_world_contains(base_pos, base_size)) {
                 obj->pos.x += xdir;
             } else {
-                br.x -= xdir;
-                bl.x -= xdir;
+                base_pos.x -= xdir;
             }
 
-            bl.y += ydir;
-            br.y += ydir;
+            base_pos.y += ydir;
 
-            if (ib_world_col_point(bl) && ib_world_col_point(br)) {
+            if (ib_world_contains(base_pos, base_size)) {
                 obj->pos.y += ydir;
             }
         }
