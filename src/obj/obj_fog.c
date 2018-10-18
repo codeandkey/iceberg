@@ -6,7 +6,7 @@
 
 #define OBJ_FOG_IMAGE IB_GRAPHICS_TEXFILE("mist")
 #define OBJ_FOG_DEPTH 3
-#define OBJ_FOG_SPEED 14 /* speed of the highest parallax depth, back layers will be slower */
+#define OBJ_FOG_SPEED 0.15 /* speed of the highest parallax depth, back layers will be slower */
 
 typedef struct {
     ib_graphics_texture* tex;
@@ -22,7 +22,7 @@ void obj_fog_init(ib_object* p) {
     self->tex = ib_graphics_get_texture(OBJ_FOG_IMAGE);
 
     self->subu = ib_event_subscribe(IB_EVT_UPDATE, obj_fog_evt, self);
-    self->subd = ib_event_subscribe(IB_EVT_DRAW, obj_fog_evt, self);
+    self->subd = ib_event_subscribe(IB_EVT_DRAW_BACKGROUND_POST, obj_fog_evt, self);
 }
 
 int obj_fog_evt(ib_event* e, void* d) {
@@ -32,7 +32,7 @@ int obj_fog_evt(ib_event* e, void* d) {
     ib_graphics_get_camera(&cx, &cy);
 
     switch (e->type) {
-    case IB_EVT_DRAW:
+    case IB_EVT_DRAW_BACKGROUND_POST:
         /* movie magic here. treat each depth as a different parallax level relative to the camera */
         /* render parallax levels from back to front */
         /* we can fake a worldspace parallax by rendering in screenspace mod vpw which is a massive hack it's great */
@@ -58,9 +58,7 @@ int obj_fog_evt(ib_event* e, void* d) {
         break;
     case IB_EVT_UPDATE:
         {
-            ib_event_update* u = e->evt;
-            float dt_s = u->dt / 1000.0f;
-            self->scroll += OBJ_FOG_SPEED * dt_s;
+            self->scroll += OBJ_FOG_SPEED;
         }
         break;
     }

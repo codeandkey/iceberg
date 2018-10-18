@@ -11,6 +11,7 @@
 #define IB_EVT_DRAW_WEATHER 4
 #define IB_EVT_DRAW_WORLD 5
 #define IB_EVT_DRAW_BACKGROUND 6
+#define IB_EVT_DRAW_BACKGROUND_POST 7
 /* end event types */
 
 typedef struct _ib_event {
