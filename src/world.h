@@ -2,6 +2,7 @@
 #define IB_WORLD
 
 #include "hashmap.h"
+#include "graphics.h"
 
 /* in an ideal world we would have the world as an object itself
  * however, almost every object in the game will interact with the world somehow
@@ -31,6 +32,9 @@ typedef struct _ib_object {
     ib_object_type* t; /* don't mutate */
     struct _ib_object* next, *prev; /* good lord don't mutate */
     void* d; /* go for it */
+    ib_graphics_point pos, size; /* object don't really have to respect these at all, feel free to mutate */
+    float angle; /* just properties loaded from the map */
+    int visible;
 } ib_object;
 
 int ib_world_init();
@@ -47,7 +51,7 @@ void ib_world_render();
 /* ib_world_create_object returns a handle to the object but in most cases you don't really need it */
 
 void ib_world_bind_object(const char* name, ib_object_fn init, ib_object_fn destroy);
-ib_object* ib_world_create_object(const char* type, const char* name, ib_hashmap* props);
+ib_object* ib_world_create_object(const char* type, const char* name, ib_hashmap* props, ib_graphics_point pos, ib_graphics_point size, float angle, int visible);
 void ib_world_destroy_object(ib_object* p);
 void ib_world_destroy_all();
 

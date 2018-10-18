@@ -1,5 +1,4 @@
 #include "world.h"
-#include "graphics.h"
 #include "log.h"
 #include "mem.h"
 
@@ -39,8 +38,10 @@ static struct {
 } _ib_world_state;
 
 static int _ib_world_load_layer(xmlNode* n);
+static int _ib_world_load_objlayer(xmlNode* n);
 static int _ib_world_load_tileset(xmlNode* n);
 static void _ib_world_free_types(const char* k, void* v);
+static void _ib_world_free_props(const char* k, void* v);
 static void _ib_world_unload(void);
 
 int ib_world_init() {
@@ -101,6 +102,10 @@ int ib_world_load(const char* path) {
             _ib_world_load_layer(cur);
         }
 
+        if (!strcmp((char*) cur->name, "objectlayer")) {
+            _ib_world_load_objlayer(cur);
+        }
+
         if (!strcmp((char*) cur->name, "tileset")) {
             _ib_world_load_tileset(cur);
         }
@@ -108,6 +113,69 @@ int ib_world_load(const char* path) {
 
     xmlFreeDoc(doc);
     return ib_ok("loaded %s", path);
+}
+
+int _ib_world_load_objlayer(xmlNode* n) {
+    /* load a layer of objects -- we don't really need to care about the layer grouping and can just add the objects */
+    for (xmlNode* c = n->children; c; c = c->next) {
+        if (strcmp((char*) c->name, "object")) continue;
+
+        char* prop_name = (char*) xmlGetProp(c, (const xmlChar*) "name");
+        char* prop_type = (char*) xmlGetProp(c, (const xmlChar*) "type");
+        char* prop_x = (char*) xmlGetProp(c, (const xmlChar*) "x");
+        char* prop_y = (char*) xmlGetProp(c, (const xmlChar*) "y");
+        char* prop_width = (char*) xmlGetProp(c, (const xmlChar*) "width");
+        char* prop_height = (char*) xmlGetProp(c, (const xmlChar*) "height");
+        char* prop_rotation = (char*) xmlGetProp(c, (const xmlChar*) "rotation");
+        char* prop_visible = (char*) xmlGetProp(c, (const xmlChar*) "visible");
+
+        ib_hashmap* obj_props = NULL;
+
+        for (xmlNode* p = c->children; p; p = p->next) {
+            if (strcmp((char*) p->name, "properties")) continue;
+
+            obj_props = ib_hashmap_alloc(16);
+
+            for (xmlNode* cp = p->children; cp; cp = cp->next) {
+                if (strcmp((char*) cp->name, "property")) continue;
+
+                char* prop_key = (char*) xmlGetProp(cp, (const xmlChar*) "name");
+                char* prop_value = (char*) xmlGetProp(cp, (const xmlChar*) "value");
+
+                ib_hashmap_set(obj_props, prop_key, strdup(prop_value));
+
+                xmlFree(prop_key);
+                xmlFree(prop_value);
+            }
+        }
+
+        ib_graphics_point pos, size;
+        pos.x = strtol(prop_x, NULL, 10);
+        pos.y = strtol(prop_y, NULL, 10);
+        size.x = strtol(prop_width, NULL, 10);
+        size.y = strtol(prop_height, NULL, 10);
+
+        int visible = strtol(prop_visible, NULL, 10);
+        float angle = strtof(prop_rotation, NULL);
+
+        ib_object* obj = ib_world_create_object(prop_type, prop_name, obj_props, pos, size, angle, visible);
+
+        if (!obj && obj_props) {
+            ib_hashmap_foreach(obj_props, _ib_world_free_props);
+            ib_hashmap_free(obj_props);
+        }
+
+        xmlFree(prop_name);
+        xmlFree(prop_type);
+        xmlFree(prop_x);
+        xmlFree(prop_y);
+        xmlFree(prop_width);
+        xmlFree(prop_height);
+        xmlFree(prop_rotation);
+        xmlFree(prop_visible);
+    }
+    
+    return 0;
 }
 
 int _ib_world_load_layer(xmlNode* n) {
@@ -384,6 +452,10 @@ static void _ib_world_free_types(const char* k, void* v) {
     ib_free(v);
 }
 
+static void _ib_world_free_props(const char* k, void* v) {
+    free(v); /* props are created with strdup so free() is used here */
+}
+
 void ib_world_bind_object(const char* type, ib_object_fn init, ib_object_fn destroy) {
     ib_object_type* t = ib_hashmap_get(_ib_world_state.obj_type_map, type);
 
@@ -402,7 +474,7 @@ void ib_world_bind_object(const char* type, ib_object_fn init, ib_object_fn dest
     ib_ok("bound object type %s", type);
 }
 
-ib_object* ib_world_create_object(const char* type, const char* name, ib_hashmap* props) {
+ib_object* ib_world_create_object(const char* type, const char* name, ib_hashmap* props, ib_graphics_point pos, ib_graphics_point size, float rot, int visible) {
     ib_object_type* t = ib_hashmap_get(_ib_world_state.obj_type_map, type);
 
     if (!t) {
@@ -419,6 +491,10 @@ ib_object* ib_world_create_object(const char* type, const char* name, ib_hashmap
 
     obj->props = props;
     obj->t = t;
+    obj->pos = pos;
+    obj->size = size;
+    obj->angle = rot;
+    obj->visible = visible;
     obj->next = _ib_world_state.objects;
     if (obj->next) obj->next->prev = obj;
     obj->prev = NULL;
@@ -440,7 +516,12 @@ void ib_world_destroy_object(ib_object* obj) {
     }
 
     obj->t->destroy(obj);
-    if (obj->props) ib_hashmap_free(obj->props);
+
+    if (obj->props) {
+        ib_hashmap_foreach(obj->props, _ib_world_free_props);
+        ib_hashmap_free(obj->props);
+    }
+
     if (obj->inst_name) free(obj->inst_name);
 
     ib_free(obj);
