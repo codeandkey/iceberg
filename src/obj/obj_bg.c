@@ -28,7 +28,7 @@ void obj_bg_init(ib_object* p) {
     self->img = ib_graphics_get_texture(imgpath);
 
     /* object resources / parameters ready, bind ourself to draw */
-    self->sub_draw = ib_event_subscribe(IB_EVT_DRAW, obj_bg_evt, self);
+    self->sub_draw = ib_event_subscribe(IB_EVT_DRAW_BACKGROUND, obj_bg_evt, self);
 }
 
 int obj_bg_evt(ib_event* e, void* d) {
@@ -39,7 +39,7 @@ int obj_bg_evt(ib_event* e, void* d) {
     ib_graphics_set_space(IB_GRAPHICS_SCREENSPACE);
 
     switch (e->type) {
-    case IB_EVT_DRAW:
+    case IB_EVT_DRAW_BACKGROUND:
         ib_graphics_draw_texture(self->img, pos);
         break;
     }

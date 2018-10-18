@@ -87,6 +87,7 @@ int ib_game_run(void) {
             backticks += 1000 / IB_GAME_UPDATES_PER_SEC;
         }
 
+        ib_event_add(IB_EVT_DRAW_BACKGROUND, NULL, 0);
         ib_event_add(IB_EVT_DRAW_WORLD, NULL, 0);
         ib_event_add(IB_EVT_DRAW, NULL, 0);
         ib_event_add(IB_EVT_DRAW_WEATHER, NULL, 0);

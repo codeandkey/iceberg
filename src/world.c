@@ -42,7 +42,6 @@ static struct {
 static int _ib_world_load_layer(xmlNode* n);
 static int _ib_world_load_objlayer(xmlNode* n);
 static int _ib_world_load_tileset(xmlNode* n);
-static int _ib_world_col_point(ib_graphics_point p);
 static void _ib_world_free_types(const char* k, void* v);
 static void _ib_world_free_props(const char* k, void* v);
 static void _ib_world_unload(void);
@@ -127,16 +126,16 @@ int ib_world_load(const char* path) {
 }
 
 int ib_world_aabb(ib_graphics_point pos, ib_graphics_point size) {
-    if (_ib_world_col_point(pos)) return 1;
+    if (ib_world_col_point(pos)) return 1;
     pos.x += size.x;
-    if (_ib_world_col_point(pos)) return 1;
+    if (ib_world_col_point(pos)) return 1;
     pos.y += size.y;
-    if (_ib_world_col_point(pos)) return 1;
+    if (ib_world_col_point(pos)) return 1;
     pos.x -= size.x;
-    return _ib_world_col_point(pos);
+    return ib_world_col_point(pos);
 }
 
-int _ib_world_col_point(ib_graphics_point p) {
+int ib_world_col_point(ib_graphics_point p) {
     int ptx = p.x / _ib_world_state.twidth, pty = p.y / _ib_world_state.theight;
     return _ib_world_state.layers[1]->data[pty * _ib_world_state.width + ptx];
 }

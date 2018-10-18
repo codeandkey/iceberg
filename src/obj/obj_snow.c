@@ -100,6 +100,7 @@ int obj_snow_evt(ib_event* e, void* ed) {
                     d->parts[i].y = cy - 10;
                     d->parts[i].x = cx + rand() % vpw;
                     d->parts[i].y_drop = cy + rand() % vph;
+                    d->parts[i].dropped = 0;
                 }
             }
         }

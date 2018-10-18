@@ -34,21 +34,26 @@ int obj_player_evt(ib_event* e, void* d) {
     switch (e->type) {
     case IB_EVT_UPDATE:
         {
-            ib_graphics_point orig = obj->pos, cur = orig;
+            ib_graphics_point orig = obj->pos, cur = orig, bl = cur, br = cur;
             int xdir = OBJ_PLAYER_SPEED_X * (ib_input_get_key(SDL_SCANCODE_RIGHT) - ib_input_get_key(SDL_SCANCODE_LEFT)); /* sneaky logic */
             int ydir = OBJ_PLAYER_SPEED_Y * (ib_input_get_key(SDL_SCANCODE_DOWN) - ib_input_get_key(SDL_SCANCODE_UP));
-            cur.x += xdir;
 
-            if (!ib_world_aabb(cur, obj->size)) {
+            bl.x = orig.x + xdir;
+            bl.y = orig.y + obj->size.y;
+            br = bl;
+            br.x += obj->size.x;
+
+            if (ib_world_col_point(bl) && ib_world_col_point(br)) {
                 obj->pos.x += xdir;
             } else {
-                cur.x = obj->pos.x; /* assist sequential collision logic */
-
+                br.x -= xdir;
+                bl.x -= xdir;
             }
 
-            cur.y += ydir;
+            bl.y += ydir;
+            br.y += ydir;
 
-            if (!ib_world_aabb(cur, obj->size)) {
+            if (ib_world_col_point(bl) && ib_world_col_point(br)) {
                 obj->pos.y += ydir;
             }
         }

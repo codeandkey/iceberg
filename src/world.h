@@ -50,6 +50,7 @@ void ib_world_render();
 
 /* will need rewrite after transition to chunks */
 int ib_world_aabb(ib_graphics_point pos, ib_graphics_point size);
+int ib_world_col_point(ib_graphics_point pos);
 
 /* ib_world_create_object returns a handle to the object but in most cases you don't really need it */
 

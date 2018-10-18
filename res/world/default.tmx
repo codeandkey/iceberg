@@ -124,7 +124,7 @@
  </layer>
  <objectgroup id="2" name="obj">
   <object id="1" name="snow" type="snow" x="165" y="120" width="191" height="91"/>
-  <object id="2" name="player" x="148" y="305" width="32" height="32"/>
+  <object id="2" name="player" x="160" y="446" width="32" height="32"/>
   <object id="3" name="bg" type="bg" x="220" y="239" width="117" height="50"/>
  </objectgroup>
 </map>
