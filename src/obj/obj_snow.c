@@ -16,7 +16,7 @@
 #define OBJ_SNOW_NUM_PARTS 81
 
 typedef struct {
-    int x, y, dx, dy;
+    float x, y, dx, dy;
     float rot, drot, alpha;
     int type;
     int y_drop, dropped, still;
@@ -43,10 +43,10 @@ void obj_snow_init(ib_object* p) {
         d->parts[i].x = rand() % IB_GRAPHICS_WIDTH + cx;
         d->parts[i].y = rand() % IB_GRAPHICS_HEIGHT + cy;
         d->parts[i].type = rand() % 3;
-        d->parts[i].dx = rand() % 2 - 1;
-        d->parts[i].dy = rand() % 2 + 1;
+        d->parts[i].dx = (rand() % 10) * 2.0f / 9.0f - 1.0f;
+        d->parts[i].dy = (rand() % 10) / 9.0f + 1.0f;
         d->parts[i].rot = ((rand() % 100) / 99.0f) * 3.141f * 2.0f;
-        d->parts[i].drot = ((rand() % 100) / 99.0f) * 30.0f - 15.0f;
+        d->parts[i].drot = ((rand() % 100) / 99.0f) * 2.0f - 1.0f;
         d->parts[i].alpha = (rand() % 100) / 140.0f;
         d->parts[i].y_drop = cy + (rand() % IB_GRAPHICS_HEIGHT);
         d->parts[i].dropped = 0;
@@ -71,9 +71,9 @@ int obj_snow_evt(ib_event* e, void* ed) {
                     if (!--d->parts[i].still) {
                         /* reset dropped particle */
                         d->parts[i].y = -10;
-                        d->parts[i].y_drop = cy + rand() % vph;
+                        d->parts[i].y_drop = cy + rand() % (vph * 3 / 2);
                         d->parts[i].dropped = 0;
-                        d->parts[i].x = rand() % vph;
+                        d->parts[i].x = rand() % vpw;
                     }
                     continue;
                 }
@@ -99,7 +99,7 @@ int obj_snow_evt(ib_event* e, void* ed) {
                 if (d->parts[i].y > cy + vph) {
                     d->parts[i].y = cy - 10;
                     d->parts[i].x = cx + rand() % vpw;
-                    d->parts[i].y_drop = cy + rand() % vph;
+                    d->parts[i].y_drop = cy + rand() % (vph * 3 / 2);
                     d->parts[i].dropped = 0;
                 }
             }
