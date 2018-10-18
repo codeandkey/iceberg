@@ -18,7 +18,7 @@ static struct {
 
 ib_graphics_color ib_graphics_color_black = {0x00};
 ib_graphics_color ib_graphics_color_white = {0xFF, 0xFF, 0xFF, 0x00};
-ib_graphics_color ib_graphics_color_clear = {0xC9, 0xD7, 0xD8, 0x00};
+ib_graphics_color ib_graphics_color_clear = {0x00, 0x00, 0x00, 0x00};
 
 static void _ib_graphics_transform(ib_graphics_point* p);
 
@@ -131,7 +131,7 @@ void ib_graphics_draw_line(ib_graphics_point a, ib_graphics_point b) {
     SDL_RenderDrawLine(_ib_graphics_state.renderer, a.x, a.y, b.x, b.y);
 }
 
-void ib_graphics_draw_texture_ex(ib_graphics_texture* t, ib_graphics_point pos, ib_graphics_point size, float rad, int flip_x, int flip_y) {
+void ib_graphics_draw_texture_ex(ib_graphics_texture* t, ib_graphics_point pos, ib_graphics_point size, float rad, int flip_x, int flip_y, float alpha) {
     /* most explicit function for rendering textures (and the only one called) */
 
     _ib_graphics_transform(&pos);
@@ -144,6 +144,7 @@ void ib_graphics_draw_texture_ex(ib_graphics_texture* t, ib_graphics_point pos, 
 
     int flip = (flip_x * SDL_FLIP_HORIZONTAL) | (flip_y * SDL_FLIP_VERTICAL);
 
+    SDL_SetTextureAlphaMod(t->tex, alpha * 255.0f);
     SDL_RenderCopyEx(_ib_graphics_state.renderer, t->tex, NULL, &dest, rad, NULL, flip);
 }
 

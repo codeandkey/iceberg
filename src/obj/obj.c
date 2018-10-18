@@ -5,6 +5,7 @@
 #include "obj_bg.h"
 #include "obj_snow.h"
 #include "obj_fog.h"
+#include "obj_player.h"
 
 void ib_obj_bind_all() {
     ib_ok("binding object types");
@@ -17,4 +18,5 @@ void ib_obj_bind_all() {
     ib_world_bind_object("bg", obj_bg_init, obj_bg_destroy);
     ib_world_bind_object("snow", obj_snow_init, obj_snow_destroy);
     ib_world_bind_object("fog", obj_fog_init, obj_fog_destroy);
+    ib_world_bind_object("player", obj_player_init, obj_player_destroy);
 }

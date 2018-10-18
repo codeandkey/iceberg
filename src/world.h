@@ -48,6 +48,9 @@ void ib_world_update_animations(int dt);
 void ib_world_render_layer(int layer);
 void ib_world_render();
 
+/* will need rewrite after transition to chunks */
+int ib_world_aabb(ib_graphics_point pos, ib_graphics_point size);
+
 /* ib_world_create_object returns a handle to the object but in most cases you don't really need it */
 
 void ib_world_bind_object(const char* name, ib_object_fn init, ib_object_fn destroy);

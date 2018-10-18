@@ -30,7 +30,7 @@ typedef struct {
 } ib_world_layer;
 
 static struct {
-    int initialized, twidth, theight;
+    int initialized, twidth, theight, width, height;
     ib_world_layer* layers[IB_WORLD_MAX_LAYERS];
     ib_world_tile* tiles[IB_WORLD_MAX_TID];
     ib_hashmap* obj_type_map;
@@ -40,6 +40,7 @@ static struct {
 static int _ib_world_load_layer(xmlNode* n);
 static int _ib_world_load_objlayer(xmlNode* n);
 static int _ib_world_load_tileset(xmlNode* n);
+static int _ib_world_col_point(ib_graphics_point p);
 static void _ib_world_free_types(const char* k, void* v);
 static void _ib_world_free_props(const char* k, void* v);
 static void _ib_world_unload(void);
@@ -81,9 +82,13 @@ int ib_world_load(const char* path) {
 
     char* prop_twidth = (char*) xmlGetProp(root, (const xmlChar*) "tilewidth");
     char* prop_theight = (char*) xmlGetProp(root, (const xmlChar*) "tileheight");
+    char* prop_width = (char*) xmlGetProp(root, (const xmlChar*) "width");
+    char* prop_height = (char*) xmlGetProp(root, (const xmlChar*) "height");
 
     _ib_world_state.twidth = strtol(prop_twidth, NULL, 10);
     _ib_world_state.theight = strtol(prop_theight, NULL, 10);
+    _ib_world_state.width = strtol(prop_width, NULL, 10);
+    _ib_world_state.height = strtol(prop_height, NULL, 10);
 
     ib_ok("loading %s..", path);
     ib_ok("tile dimensions: %s x %s", prop_twidth, prop_theight);
@@ -113,6 +118,21 @@ int ib_world_load(const char* path) {
 
     xmlFreeDoc(doc);
     return ib_ok("loaded %s", path);
+}
+
+int ib_world_aabb(ib_graphics_point pos, ib_graphics_point size) {
+    if (_ib_world_col_point(pos)) return 1;
+    pos.x += size.x;
+    if (_ib_world_col_point(pos)) return 1;
+    pos.y += size.y;
+    if (_ib_world_col_point(pos)) return 1;
+    pos.x -= size.x;
+    return _ib_world_col_point(pos);
+}
+
+int _ib_world_col_point(ib_graphics_point p) {
+    int ptx = p.x / _ib_world_state.twidth, pty = p.y / _ib_world_state.theight;
+    return _ib_world_state.layers[1]->data[pty * _ib_world_state.width + ptx];
 }
 
 int _ib_world_load_objlayer(xmlNode* n) {
@@ -158,7 +178,7 @@ int _ib_world_load_objlayer(xmlNode* n) {
         int visible = prop_visible ? strtol(prop_visible, NULL, 10) : 1;
         float angle = prop_rotation ? strtof(prop_rotation, NULL) : 0.0f;
 
-        ib_object* obj = ib_world_create_object(prop_type, prop_name, obj_props, pos, size, angle, visible);
+        ib_object* obj = ib_world_create_object(prop_name, prop_type, obj_props, pos, size, angle, visible);
 
         if (!obj && obj_props) {
             ib_hashmap_foreach(obj_props, _ib_world_free_props);

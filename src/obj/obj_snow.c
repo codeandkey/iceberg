@@ -4,11 +4,14 @@
 #include "../event.h"
 #include "../mem.h"
 
-#define OBJ_SNOW_NUM_PARTS 128
+/* perspective tricks
+ * render one half of the snow above the world and the other half below it. */
+
+#define OBJ_SNOW_NUM_PARTS 32
 
 typedef struct {
-    float x, y, dx, dy;
-    float rot, drot;
+    int x, y, dx, dy;
+    float rot, drot, alpha;
     int type;
 } obj_snow_flake;
 
@@ -33,10 +36,11 @@ void obj_snow_init(ib_object* p) {
         d->parts[i].x = rand() % IB_GRAPHICS_WIDTH + cx;
         d->parts[i].y = rand() % IB_GRAPHICS_HEIGHT + cy;
         d->parts[i].type = rand() % 3;
-        d->parts[i].dx = rand() % 17 - 8;
-        d->parts[i].dy = rand() % 25 + 20;
+        d->parts[i].dx = rand() % 2 - 1;
+        d->parts[i].dy = rand() % 2 + 1;
         d->parts[i].rot = ((rand() % 100) / 99.0f) * 3.141f * 2.0f;
         d->parts[i].drot = ((rand() % 100) / 99.0f) * 30.0f - 15.0f;
+        d->parts[i].alpha = (rand() % 100) / 140.0f;
     }
 
     ib_event_subscribe(IB_EVT_DRAW, obj_snow_evt, d);
@@ -52,13 +56,10 @@ int obj_snow_evt(ib_event* e, void* ed) {
     switch (e->type) {
     case IB_EVT_UPDATE:
         {
-            ib_event_update* u = e->evt;
-            float dt_sec = u->dt / 1000.0f;
-
             for (int i = 0; i < OBJ_SNOW_NUM_PARTS; ++i) {
-                d->parts[i].x += d->parts[i].dx * dt_sec;
-                d->parts[i].y += d->parts[i].dy * dt_sec;
-                d->parts[i].rot += d->parts[i].drot * dt_sec;
+                d->parts[i].x += d->parts[i].dx;
+                d->parts[i].y += d->parts[i].dy;
+                d->parts[i].rot += d->parts[i].drot;
 
                 if (d->parts[i].x + d->flakes[d->parts[i].type]->size.x < cx) d->parts[i].x += vpw;
                 if (d->parts[i].y < cy) d->parts[i].y += vph;
@@ -74,7 +75,8 @@ int obj_snow_evt(ib_event* e, void* ed) {
                 pos.x = d->parts[i].x;
                 pos.y = d->parts[i].y;
 
-                ib_graphics_draw_texture_rot(d->flakes[d->parts[i].type], pos, d->parts[i].rot);
+                ib_graphics_texture* t = d->flakes[d->parts[i].type];
+                ib_graphics_draw_texture_ex(t, pos, t->size, d->parts[i].rot, 0, 0, d->parts[i].alpha);
             }
         break;
     }

@@ -21,4 +21,6 @@ int ib_input_init(void);
 void ib_input_free(void);
 void ib_input_poll(void);
 
+int ib_input_get_key(int scancode);
+
 #endif

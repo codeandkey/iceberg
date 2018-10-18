@@ -10,7 +10,6 @@
 #include "obj/obj.h"
 
 static int _ib_game_should_quit;
-static int _ib_game_keys[2048];
 
 int _ib_game_key_handler(ib_event* e, void* d) {
     ib_input_event* ie = (ib_input_event*) e->evt;
@@ -20,41 +19,10 @@ int _ib_game_key_handler(ib_event* e, void* d) {
         ib_event_add(IB_EVT_QUIT, NULL, 0);
     }
 
-    if (ie->type == IB_INPUT_EVT_KEYDOWN) {
-        _ib_game_keys[ie->scancode] = 1;
-    }
-
-    if (ie->type == IB_INPUT_EVT_KEYUP) {
-        _ib_game_keys[ie->scancode] = 0;
-    }
-
     return 0;
 }
 
 int _ib_game_update_handler(ib_event* e, void* d) {
-    ib_event_update* u = e->evt;
-    float dt_s = u->dt / 1000.0f;
-
-    int cx, cy;
-    ib_graphics_get_camera(&cx, &cy);
-
-    if (_ib_game_keys[SDL_SCANCODE_LEFT]) {
-        cx -= (dt_s * 50.0f) + 1;
-    }
-
-    if (_ib_game_keys[SDL_SCANCODE_RIGHT]) {
-        cx += (dt_s * 50.0f) + 1;
-    }
-
-    if (_ib_game_keys[SDL_SCANCODE_UP]) {
-        cy -= (dt_s * 50.0f) + 1;
-    }
-
-    if (_ib_game_keys[SDL_SCANCODE_DOWN]) {
-        cy += (dt_s * 50.0f) + 1;
-    }
-
-    ib_graphics_set_camera(cx, cy);
     return 0;
 }
 
@@ -100,27 +68,28 @@ void ib_game_free(void) {
 int ib_game_run(void) {
     ib_ok("starting main loop");
 
-    uint32_t ticks, frame_dt;
-    ticks = SDL_GetTicks();
+    uint32_t backticks = SDL_GetTicks(), dt, ticks;
 
     _ib_game_should_quit = 0;
 
     while (!_ib_game_should_quit) {
-        frame_dt = SDL_GetTicks() - ticks;
-        ticks += frame_dt;
+        dt = SDL_GetTicks() - ticks;
+        ticks += dt;
 
-        ib_audio_update(frame_dt);
+        ib_audio_update(dt);
         ib_input_poll();
         ib_graphics_clear();
 
-        ib_event_update ud;
-        ud.dt = frame_dt;
+        while (backticks < SDL_GetTicks()) {
+            ib_event_add(IB_EVT_UPDATE, NULL, 0);
+            backticks += 1000 / IB_GAME_UPDATES_PER_SEC;
+        }
 
         ib_event_add(IB_EVT_DRAW, NULL, 0);
-        ib_event_add(IB_EVT_UPDATE, &ud, sizeof ud);
+
         ib_event_work();
 
-        ib_world_update_animations(frame_dt);
+        ib_world_update_animations(dt);
         ib_world_render();
         ib_graphics_swap();
     }
