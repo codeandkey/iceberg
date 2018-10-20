@@ -6,7 +6,7 @@
 
 #define OBJ_FOG_IMAGE IB_GRAPHICS_TEXFILE("mist")
 #define OBJ_FOG_DEPTH 3
-#define OBJ_FOG_SPEED 0.15 /* speed of the highest parallax depth, back layers will be slower */
+#define OBJ_FOG_SPEED 1.0 /* speed of the highest parallax depth, back layers will be slower */
 
 typedef struct {
     ib_graphics_texture* tex;
