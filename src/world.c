@@ -146,6 +146,11 @@ int ib_world_contains(ib_graphics_point pos, ib_graphics_point size) {
 }
 
 int ib_world_col_point(ib_graphics_point p) {
+    if (p.x < 0) return 0;
+    if (p.y < 0) return 0;
+    if (p.x > _ib_world_state.twidth * _ib_world_state.layers[1]->width) return 0;
+    if (p.y > _ib_world_state.theight * _ib_world_state.layers[1]->height) return 0;
+
     int ptx = p.x / _ib_world_state.twidth, pty = p.y / _ib_world_state.theight;
     return _ib_world_state.layers[1]->data[pty * _ib_world_state.width + ptx];
 }

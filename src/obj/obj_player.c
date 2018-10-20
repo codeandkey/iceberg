@@ -10,6 +10,7 @@
 #define OBJ_PLAYER_SPEED_Y 2 /* !! 3 dimensions! */
 #define OBJ_PLAYER_SPEED_X 3
 #define OBJ_PLAYER_BASE_HEIGHT 12 /* height of the collision box for world movement, base at the bottom of the player sprite */
+#define OBJ_PLAYER_BASE_WIDTH_MARGIN 2 /* shorten the cbox horizontally as well (from both sides) */
 #define OBJ_PLAYER_CAMERA_FACTOR 16.0f /* increase for slower camera movement. 1.0f <=> camera will always be on player */
 
 typedef struct {
@@ -36,18 +37,20 @@ int obj_player_evt(ib_event* e, void* d) {
     int cx, cy;
     ib_graphics_get_camera(&cx, &cy);
 
+    static ib_graphics_point base_pos, base_size;
+
     switch (e->type) {
     case IB_EVT_UPDATE:
         {
-            ib_graphics_point base_pos = obj->pos;
+            base_pos = obj->pos;
+
             int xdir = OBJ_PLAYER_SPEED_X * (ib_input_get_key(SDL_SCANCODE_RIGHT) - ib_input_get_key(SDL_SCANCODE_LEFT)); /* sneaky logic */
             int ydir = OBJ_PLAYER_SPEED_Y * (ib_input_get_key(SDL_SCANCODE_DOWN) - ib_input_get_key(SDL_SCANCODE_UP));
 
-            ib_graphics_point base_size;
-            base_size.x = obj->size.x;
+            base_size.x = obj->size.x - 2 * OBJ_PLAYER_BASE_WIDTH_MARGIN;
             base_size.y = OBJ_PLAYER_BASE_HEIGHT;
 
-            base_pos.x += xdir;
+            base_pos.x += xdir + OBJ_PLAYER_BASE_WIDTH_MARGIN;
             base_pos.y += obj->size.y - OBJ_PLAYER_BASE_HEIGHT;
 
             if (ib_world_contains(base_pos, base_size)) {

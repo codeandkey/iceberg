@@ -6,6 +6,7 @@
 
 static int _ib_input_initialized = 0;
 static int _ib_input_keys[1024] = {0};
+static int _ib_input_mx, _ib_input_my;
 
 int ib_input_init(void) {
     if (_ib_input_initialized) return ib_warn("already initialized");
@@ -47,8 +48,8 @@ void ib_input_poll(void) {
             break;
         case SDL_MOUSEMOTION:
             pre.type = IB_INPUT_EVT_MOUSEPOS;
-            pre.x = (int) e.motion.x;
-            pre.y = (int) e.motion.y;
+            _ib_input_mx = pre.x = (int) e.motion.x;
+            _ib_input_my = pre.y = (int) e.motion.y;
             ib_event_add(IB_EVT_INPUT, &pre, sizeof pre);
             break;
         case SDL_MOUSEBUTTONDOWN:
@@ -67,4 +68,9 @@ void ib_input_poll(void) {
 
 int ib_input_get_key(int scancode) {
     return _ib_input_keys[scancode];
+}
+
+void ib_input_get_mouse(int* mx, int* my) {
+    if (mx) *mx = _ib_input_mx;
+    if (my) *my = _ib_input_my;
 }

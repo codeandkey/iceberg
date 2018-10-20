@@ -50,7 +50,7 @@ void ib_graphics_set_color(ib_graphics_color c);
 
 void ib_graphics_set_space(int space); /* define coordinate transformation -- screenspace or worldspace */
 
-void ib_graphics_draw_line(ib_graphics_point a, ib_graphics_point pos_bl);
+void ib_graphics_draw_line(ib_graphics_point a, ib_graphics_point b);
 void ib_graphics_draw_texture_ex(ib_graphics_texture* t, ib_graphics_point pos, ib_graphics_point size, float rad, int flip_h, int flip_v, float alpha);
 
 /* helper macros to make things a little more readable */

@@ -22,5 +22,6 @@ void ib_input_free(void);
 void ib_input_poll(void);
 
 int ib_input_get_key(int scancode);
+void ib_input_get_mouse(int* mx, int* my);
 
 #endif
