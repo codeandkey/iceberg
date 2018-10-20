@@ -9,7 +9,8 @@
 #define OBJ_PLAYER_TEXTURE IB_GRAPHICS_TEXFILE("player")
 #define OBJ_PLAYER_SPEED_Y 2 /* !! 3 dimensions! */
 #define OBJ_PLAYER_SPEED_X 3
-#define OBJ_PLAYER_BASE_HEIGHT 12
+#define OBJ_PLAYER_BASE_HEIGHT 12 /* height of the collision box for world movement, base at the bottom of the player sprite */
+#define OBJ_PLAYER_CAMERA_FACTOR 16.0f /* increase for slower camera movement. 1.0f <=> camera will always be on player */
 
 typedef struct {
     ib_graphics_texture* tex;
@@ -32,10 +33,13 @@ int obj_player_evt(ib_event* e, void* d) {
     ib_object* obj = d;
     obj_player* self = obj->d;
 
+    int cx, cy;
+    ib_graphics_get_camera(&cx, &cy);
+
     switch (e->type) {
     case IB_EVT_UPDATE:
         {
-            ib_graphics_point orig = obj->pos, base_pos = orig;
+            ib_graphics_point base_pos = obj->pos;
             int xdir = OBJ_PLAYER_SPEED_X * (ib_input_get_key(SDL_SCANCODE_RIGHT) - ib_input_get_key(SDL_SCANCODE_LEFT)); /* sneaky logic */
             int ydir = OBJ_PLAYER_SPEED_Y * (ib_input_get_key(SDL_SCANCODE_DOWN) - ib_input_get_key(SDL_SCANCODE_UP));
 
@@ -57,6 +61,16 @@ int obj_player_evt(ib_event* e, void* d) {
             if (ib_world_contains(base_pos, base_size)) {
                 obj->pos.y += ydir;
             }
+
+            /* update camera position */
+
+            float target_cx = obj->pos.x + obj->size.x / 2 - IB_GRAPHICS_WIDTH / 2;
+            float target_cy = obj->pos.y + obj->size.y / 2 - IB_GRAPHICS_HEIGHT / 2;
+
+            float new_cx = (float) cx + (target_cx - (float) cx) / OBJ_PLAYER_CAMERA_FACTOR;
+            float new_cy = (float) cy + (target_cy - (float) cy) / OBJ_PLAYER_CAMERA_FACTOR;
+
+            ib_graphics_set_camera((int) new_cx, (int) new_cy);
         }
         break;
     case IB_EVT_DRAW:
