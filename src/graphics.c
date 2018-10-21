@@ -81,6 +81,10 @@ void ib_graphics_set_color(ib_graphics_color c) {
     SDL_SetRenderDrawColor(_ib_graphics_state.renderer, c.r, c.g, c.b, c.a);
 }
 
+void ib_graphics_set_texture_color(ib_graphics_texture* t, ib_graphics_color c) {
+    SDL_SetTextureColorMod(t->tex, c.r, c.g, c.b);
+}
+
 ib_graphics_texture* ib_graphics_get_texture(const char* path) {
     ib_graphics_texture* mapped = ib_hashmap_get(_ib_graphics_state.texmap, path);
 
@@ -167,4 +171,15 @@ void ib_graphics_set_camera(int x, int y) {
 void ib_graphics_get_camera(int* x, int* y) {
     if (x) *x = _ib_graphics_state.camera_x;
     if (y) *y = _ib_graphics_state.camera_y;
+}
+
+void ib_graphics_set_texture_blend(ib_graphics_texture* t, int mode) {
+    switch(mode) {
+    case IB_GRAPHICS_BM_ALPHA:
+        SDL_SetTextureBlendMode(t->tex, SDL_BLENDMODE_BLEND);
+        break;
+    case IB_GRAPHICS_BM_ADD:
+        SDL_SetTextureBlendMode(t->tex, SDL_BLENDMODE_ADD);
+        break;
+    }
 }

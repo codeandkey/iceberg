@@ -12,16 +12,17 @@
 #define IB_EVT_DRAW_WORLD 5
 #define IB_EVT_DRAW_BACKGROUND 6
 #define IB_EVT_DRAW_BACKGROUND_POST 7
+#define IB_EVT_DRAW_WORLD_LIGHTS 8
+
+/* game event types */
+#define IB_EVT_GAME_EXPLOSION 128
+
 /* end event types */
 
 typedef struct _ib_event {
     int type;
     void* evt;
 } ib_event;
-
-typedef struct {
-    int dt;
-} ib_event_update;
 
 typedef int (*ib_event_cb)(ib_event* const e, void* d);
 

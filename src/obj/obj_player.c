@@ -88,5 +88,5 @@ int obj_player_evt(ib_event* e, void* d) {
 void obj_player_destroy(ib_object* p) {
     obj_player* self = p->d;
     ib_graphics_drop_texture(self->tex);
-    ib_free(p);
+    ib_free(self);
 }

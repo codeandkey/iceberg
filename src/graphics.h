@@ -10,6 +10,9 @@
 #define IB_GRAPHICS_SCREENSPACE 0
 #define IB_GRAPHICS_WORLDSPACE 1
 
+#define IB_GRAPHICS_BM_ALPHA 0
+#define IB_GRAPHICS_BM_ADD 1
+
 #define IB_GRAPHICS_TEX_PREFIX "res/img/"
 #define IB_GRAPHICS_TEX_SUFFIX ".png"
 #define IB_GRAPHICS_TEXFILE(x) IB_GRAPHICS_TEX_PREFIX x IB_GRAPHICS_TEX_SUFFIX
@@ -47,6 +50,8 @@ void ib_graphics_set_camera(int x, int y);
 void ib_graphics_get_camera(int* x, int* y);
 void ib_graphics_get_size(int* w, int* h);
 void ib_graphics_set_color(ib_graphics_color c);
+void ib_graphics_set_texture_color(ib_graphics_texture* t, ib_graphics_color c);
+void ib_graphics_set_texture_blend(ib_graphics_texture* t, int mode);
 
 void ib_graphics_set_space(int space); /* define coordinate transformation -- screenspace or worldspace */
 

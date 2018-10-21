@@ -92,6 +92,7 @@ int ib_game_run(void) {
         ib_event_add(IB_EVT_DRAW_WORLD, NULL, 0);
         ib_event_add(IB_EVT_DRAW, NULL, 0);
         ib_event_add(IB_EVT_DRAW_WEATHER, NULL, 0);
+        ib_event_add(IB_EVT_DRAW_WORLD_LIGHTS, NULL, 0);
 
         ib_event_work();
 
