@@ -1,21 +1,20 @@
 #include "config.h"
 #include "log.h"
 #include "mem.h"
+#include "hashmap.h"
 
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
 
-typedef struct _ib_config_entry {
-    char key[IB_CONFIG_BUFLEN], value[IB_CONFIG_BUFLEN];
-    struct _ib_config_entry* next;
-} ib_config_entry;
-
-static ib_config_entry* _ib_config_rows;
+static ib_hashmap* _ib_config_map;
+static void _ib_config_free_keys(const char* k, void* v);
 
 int ib_config_init(void) {
-    if (_ib_config_rows) ib_warn("reloading configuration");
+    if (_ib_config_map) ib_warn("reloading configuration");
     ib_config_free();
+
+    _ib_config_map = ib_hashmap_alloc(256);
 
     /* try and load the configuration from the file */
     FILE* in = fopen(IB_CONFIG_FILENAME, "r");
@@ -33,16 +32,9 @@ int ib_config_init(void) {
 
         if (!key || !value || !strlen(key) || !strlen(value)) continue;
 
-        ib_config_entry* n = ib_malloc(sizeof *n);
-        ib_zero(n, sizeof *n);
+        ib_ok("[%s] = [%s]", key, value);
+        ib_hashmap_set(_ib_config_map, key, strdup(value));
 
-        n->next = _ib_config_rows;
-        strncpy(n->key, key, IB_CONFIG_BUFLEN - 1);
-        strncpy(n->value, value, IB_CONFIG_BUFLEN - 1);
-
-        ib_ok("[%s] = [%s]", n->key, n->value);
-
-        _ib_config_rows = n;
         ++count;
     }
 
@@ -50,35 +42,26 @@ int ib_config_init(void) {
 }
 
 void ib_config_free(void) {
-    ib_config_entry* tmp, *head = _ib_config_rows;
+    if (_ib_config_map) {
+        ib_hashmap_foreach(_ib_config_map, _ib_config_free_keys);
+        ib_hashmap_free(_ib_config_map);
 
-    while (head) {
-        tmp = head->next;
-        ib_free(head);
-        head = tmp;
+        _ib_config_map = NULL;
     }
-
-    _ib_config_rows = head;
 }
 
 int ib_config_get_int(const char* key, int def) {
-    ib_config_entry* cur = _ib_config_rows;
-
-    while (cur) {
-        if (!strcmp(cur->key, key)) return strtol(cur->value, NULL, 10);
-        cur = cur->next;
-    }
-
-    return def;
+    char* v = ib_hashmap_get(_ib_config_map, key);
+    if (!v) return def;
+    return strtol(v, NULL, 10);
 }
 
 const char* ib_config_get_str(const char* key, const char* def) {
-    ib_config_entry* cur = _ib_config_rows;
+    char* v = ib_hashmap_get(_ib_config_map, key);
+    if (!v) return def;
+    return v;
+}
 
-    while (cur) {
-        if (!strcmp(cur->key, key)) return cur->value;
-        cur = cur->next;
-    }
-
-    return def;
+static void _ib_config_free_keys(const char* k, void* v) {
+    free(v);
 }
