@@ -45,7 +45,7 @@ int obj_fog_evt(ib_event* e, void* d) {
         /* do a smart scale and match the aspect ratio */
         ib_graphics_point size = self->tex->size;
         size.y = ch;
-        size.x = (ch * self->tex->size.x) / self->tex->size.y;
+        size.x = cw;
 
         pos.y = 0;
 
