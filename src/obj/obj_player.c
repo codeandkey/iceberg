@@ -34,8 +34,9 @@ int obj_player_evt(ib_event* e, void* d) {
     ib_object* obj = d;
     obj_player* self = obj->d;
 
-    int cx, cy;
+    int cx, cy, cw, ch;
     ib_graphics_get_camera(&cx, &cy);
+    ib_graphics_get_size(&cw, &ch);
 
     static ib_graphics_point base_pos, base_size;
 
@@ -67,8 +68,8 @@ int obj_player_evt(ib_event* e, void* d) {
 
             /* update camera position */
 
-            float target_cx = obj->pos.x + obj->size.x / 2 - IB_GRAPHICS_WIDTH / 2;
-            float target_cy = obj->pos.y + obj->size.y / 2 - IB_GRAPHICS_HEIGHT / 2;
+            float target_cx = obj->pos.x + obj->size.x / 2 - cw / 2;
+            float target_cy = obj->pos.y + obj->size.y / 2 - ch / 2;
 
             float new_cx = (float) cx + (target_cx - (float) cx) / OBJ_PLAYER_CAMERA_FACTOR;
             float new_cy = (float) cy + (target_cy - (float) cy) / OBJ_PLAYER_CAMERA_FACTOR;

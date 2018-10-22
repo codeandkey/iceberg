@@ -28,8 +28,9 @@ void obj_fog_init(ib_object* p) {
 int obj_fog_evt(ib_event* e, void* d) {
     obj_fog* self = d;
 
-    int cx, cy, cw = IB_GRAPHICS_WIDTH;
+    int cx, cy, cw;
     ib_graphics_get_camera(&cx, &cy);
+    ib_graphics_get_size(&cw, NULL);
 
     switch (e->type) {
     case IB_EVT_DRAW_BACKGROUND_POST:

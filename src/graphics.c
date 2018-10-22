@@ -13,7 +13,7 @@ static struct {
     SDL_Renderer* renderer;
     ib_hashmap* texmap;
     int space;
-    int camera_x, camera_y;
+    int camera_x, camera_y, width, height;
 } _ib_graphics_state;
 
 ib_graphics_color ib_graphics_color_black = {0x00};
@@ -27,6 +27,8 @@ int ib_graphics_init(void) {
 
     _ib_graphics_state.texmap = ib_hashmap_alloc(256);
 
+    _ib_graphics_state.width = ib_config_get_int(IB_CONFIG_GRAPHICS_WIDTH, IB_GRAPHICS_DEF_WIDTH);
+    _ib_graphics_state.height = ib_config_get_int(IB_CONFIG_GRAPHICS_HEIGHT, IB_GRAPHICS_DEF_HEIGHT);
     _ib_graphics_state.fs = ib_config_get_int(IB_CONFIG_GRAPHICS_FS, IB_GRAPHICS_DEF_FULLSCREEN);
     _ib_graphics_state.camera_x = _ib_graphics_state.camera_y = 0;
     _ib_graphics_state.space = IB_GRAPHICS_WORLDSPACE;
@@ -38,15 +40,13 @@ int ib_graphics_init(void) {
     }
 
 
-    if (SDL_CreateWindowAndRenderer(IB_GRAPHICS_WIDTH,
-                                    IB_GRAPHICS_HEIGHT,
+    if (SDL_CreateWindowAndRenderer(_ib_graphics_state.width,
+                                    _ib_graphics_state.height,
                                     flags,
                                     &_ib_graphics_state.win,
                                     &_ib_graphics_state.renderer) < 0) {
         return ib_err("SDL window/renderer init failed");
     }
-
-    SDL_RenderSetLogicalSize(_ib_graphics_state.renderer, IB_GRAPHICS_WIDTH, IB_GRAPHICS_HEIGHT);
 
     SDL_SetHint(SDL_HINT_RENDER_SCALE_QUALITY, "0");
 
@@ -171,6 +171,11 @@ void ib_graphics_set_camera(int x, int y) {
 void ib_graphics_get_camera(int* x, int* y) {
     if (x) *x = _ib_graphics_state.camera_x;
     if (y) *y = _ib_graphics_state.camera_y;
+}
+
+void ib_graphics_get_size(int* x, int* y) {
+    if (x) *x = _ib_graphics_state.width;
+    if (y) *y = _ib_graphics_state.height;
 }
 
 void ib_graphics_set_texture_blend(ib_graphics_texture* t, int mode) {

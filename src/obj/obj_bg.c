@@ -34,13 +34,13 @@ void obj_bg_init(ib_object* p) {
 int obj_bg_evt(ib_event* e, void* d) {
     obj_bg* self = (obj_bg*) d;
 
-    ib_graphics_point pos = {0};
-
+    ib_graphics_point pos = {0}, screensize = {0};
     ib_graphics_set_space(IB_GRAPHICS_SCREENSPACE);
+    ib_graphics_get_size(&screensize.x, &screensize.y);
 
     switch (e->type) {
     case IB_EVT_DRAW_BACKGROUND:
-        ib_graphics_draw_texture(self->img, pos);
+        ib_graphics_draw_texture_size(self->img, pos, screensize);
         break;
     }
 
