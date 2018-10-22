@@ -5,6 +5,7 @@
 #include "../mem.h"
 #include "../log.h"
 #include "../input.h"
+#include "../sprite.h"
 
 #define OBJ_PLAYER_TEXTURE IB_GRAPHICS_TEXFILE("player")
 #define OBJ_PLAYER_SPEED_Y 2 /* !! 3 dimensions! */
@@ -14,7 +15,7 @@
 #define OBJ_PLAYER_CAMERA_FACTOR 16.0f /* increase for slower camera movement. 1.0f <=> camera will always be on player */
 
 typedef struct {
-    ib_graphics_texture* tex;
+    ib_sprite* spr;
     int subd, subu;
 } obj_player;
 
@@ -23,7 +24,7 @@ static int obj_player_evt(ib_event* e, void* d);
 void obj_player_init(ib_object* p) {
     obj_player* self = p->d = ib_malloc(sizeof *self);
 
-    self->tex = ib_graphics_get_texture(OBJ_PLAYER_TEXTURE);
+    self->spr = ib_sprite_alloc(OBJ_PLAYER_TEXTURE);
     self->subd = ib_event_subscribe(IB_EVT_DRAW, obj_player_evt, p);
     self->subu = ib_event_subscribe(IB_EVT_UPDATE, obj_player_evt, p);
 
@@ -79,7 +80,8 @@ int obj_player_evt(ib_event* e, void* d) {
         break;
     case IB_EVT_DRAW:
         ib_graphics_set_space(IB_GRAPHICS_WORLDSPACE);
-        ib_graphics_draw_texture(self->tex, obj->pos);
+        self->spr->alpha = 0.0f;
+        ib_graphics_draw_sprite(self->spr, obj->pos);
         break;
     }
 
@@ -88,6 +90,6 @@ int obj_player_evt(ib_event* e, void* d) {
 
 void obj_player_destroy(ib_object* p) {
     obj_player* self = p->d;
-    ib_graphics_drop_texture(self->tex);
+    ib_sprite_free(self->spr);
     ib_free(self);
 }

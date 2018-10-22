@@ -4,6 +4,7 @@
 #include "mem.h"
 #include "hashmap.h"
 #include "event.h"
+#include "sprite.h"
 
 #include <SDL2/SDL_image.h>
 
@@ -136,6 +137,11 @@ void ib_graphics_draw_line(ib_graphics_point a, ib_graphics_point b) {
 }
 
 void ib_graphics_draw_texture_ex(ib_graphics_texture* t, ib_graphics_point pos, ib_graphics_point size, float rad, int flip_x, int flip_y, float alpha) {
+    ib_graphics_point src = {0};
+    ib_graphics_draw_texture_portion_ex(t, src, t->size, pos, size, rad, flip_x, flip_y, alpha);
+}
+
+void ib_graphics_draw_texture_portion_ex(ib_graphics_texture* t, ib_graphics_point src, ib_graphics_point srcsize, ib_graphics_point pos, ib_graphics_point size, float rad, int flip_x, int flip_y, float alpha) {
     /* most explicit function for rendering textures (and the only one called) */
 
     _ib_graphics_transform(&pos);
@@ -146,10 +152,27 @@ void ib_graphics_draw_texture_ex(ib_graphics_texture* t, ib_graphics_point pos, 
     dest.w = size.x;
     dest.h = size.y;
 
+    SDL_Rect srcr;
+    srcr.x = src.x;
+    srcr.y = src.y;
+    srcr.w = srcsize.x;
+    srcr.h = srcsize.y;
+
     int flip = (flip_x * SDL_FLIP_HORIZONTAL) | (flip_y * SDL_FLIP_VERTICAL);
 
     SDL_SetTextureAlphaMod(t->tex, alpha * 255.0f);
-    SDL_RenderCopyEx(_ib_graphics_state.renderer, t->tex, NULL, &dest, rad, NULL, flip);
+    SDL_RenderCopyEx(_ib_graphics_state.renderer, t->tex, &srcr, &dest, rad, NULL, flip);
+}
+
+void ib_graphics_draw_sprite(ib_sprite* spr, ib_graphics_point pos) {
+    /* compute the current frame coordinates and make the rectangle */
+    ib_graphics_point src, srcsize;
+    src.x = spr->fw * (spr->cur_frame * spr->fw) % spr->_tex->size.x;
+    src.y = spr->fh * (spr->cur_frame / (spr->_tex->size.x / spr->fw));
+    srcsize.x = spr->fw;
+    srcsize.y = spr->fh;
+
+    ib_graphics_draw_texture_portion_ex(spr->_tex, src, srcsize, pos, spr->size, spr->angle, 0, 0, spr->alpha);
 }
 
 void _ib_graphics_transform(ib_graphics_point* p) {

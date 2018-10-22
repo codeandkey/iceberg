@@ -19,6 +19,8 @@
 
 #include <SDL2/SDL.h>
 
+struct _ib_sprite; /* needed for draw_sprite signature */
+
 typedef struct {
     uint8_t r, g, b, a;
 } ib_graphics_color;
@@ -33,6 +35,11 @@ typedef struct {
     ib_graphics_point size;
     SDL_Texture* tex;
 } ib_graphics_texture;
+
+typedef struct {
+    ib_graphics_texture* base;
+    int fw, fh, interval, cur, cur_wait;
+} ib_graphics_anim_texture;
 
 extern ib_graphics_color ib_graphics_color_black, ib_graphics_color_white, ib_graphics_color_clear;
 
@@ -56,6 +63,9 @@ void ib_graphics_set_space(int space); /* define coordinate transformation -- sc
 
 void ib_graphics_draw_line(ib_graphics_point a, ib_graphics_point b);
 void ib_graphics_draw_texture_ex(ib_graphics_texture* t, ib_graphics_point pos, ib_graphics_point size, float rad, int flip_h, int flip_v, float alpha);
+void ib_graphics_draw_texture_portion_ex(ib_graphics_texture* t, ib_graphics_point src, ib_graphics_point srcsize, ib_graphics_point pos, ib_graphics_point size, float rad, int flip_h, int flip_v, float alpha);
+
+void ib_graphics_draw_sprite(struct _ib_sprite* spr, ib_graphics_point pos);
 
 /* helper macros to make things a little more readable */
 
