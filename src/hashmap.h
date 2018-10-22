@@ -1,8 +1,6 @@
 #ifndef IB_HASHMAP
 #define IB_HASHMAP
 
-/* the hashmap does NOT copy string contents (for now), so only use it with string literals */
-
 typedef struct _ib_hashmap_entry {
     char* key;
     void* value;
