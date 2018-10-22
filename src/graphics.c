@@ -167,8 +167,8 @@ void ib_graphics_draw_texture_portion_ex(ib_graphics_texture* t, ib_graphics_poi
 void ib_graphics_draw_sprite(ib_sprite* spr, ib_graphics_point pos) {
     /* compute the current frame coordinates and make the rectangle */
     ib_graphics_point src, srcsize;
-    src.x = spr->fw * (spr->cur_frame * spr->fw) % spr->_tex->size.x;
-    src.y = spr->fh * (spr->cur_frame / (spr->_tex->size.x / spr->fw));
+    src.y = 0;
+    src.x = spr->fw * spr->cur_frame;
     srcsize.x = spr->fw;
     srcsize.y = spr->fh;
 

@@ -16,7 +16,7 @@
 
 typedef struct {
     ib_sprite* spr;
-    int subd, subu;
+    int subd, subu, subi;
 } obj_player;
 
 static int obj_player_evt(ib_event* e, void* d);
@@ -27,6 +27,7 @@ void obj_player_init(ib_object* p) {
     self->spr = ib_sprite_alloc(OBJ_PLAYER_TEXTURE);
     self->subd = ib_event_subscribe(IB_EVT_DRAW, obj_player_evt, p);
     self->subu = ib_event_subscribe(IB_EVT_UPDATE, obj_player_evt, p);
+    self->subi = ib_event_subscribe(IB_EVT_INPUT, obj_player_evt, p);
 
     if (p->size.x != 32 || p->size.y != 32) ib_warn("your map player size is weird and I don't understand it (%dx%d)", p->size.x, p->size.y);
 }
@@ -83,6 +84,15 @@ int obj_player_evt(ib_event* e, void* d) {
         self->spr->alpha = 0.0f;
         ib_graphics_draw_sprite(self->spr, obj->pos);
         break;
+    case IB_EVT_INPUT:
+        {
+            ib_input_event* ie = e->evt;
+
+            if (ie->type == IB_INPUT_EVT_KEYDOWN && ie->scancode == SDL_SCANCODE_SPACE) {
+                ib_world_create_object("grenade", NULL, NULL, obj->pos, obj->size, 0.0f, 1);
+            }
+        }
+        break;
     }
 
     return 0;
@@ -91,5 +101,10 @@ int obj_player_evt(ib_event* e, void* d) {
 void obj_player_destroy(ib_object* p) {
     obj_player* self = p->d;
     ib_sprite_free(self->spr);
+
+    ib_event_unsubscribe(self->subd);
+    ib_event_unsubscribe(self->subu);
+    ib_event_unsubscribe(self->subi);
+
     ib_free(self);
 }

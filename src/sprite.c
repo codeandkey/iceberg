@@ -20,7 +20,15 @@ ib_sprite* ib_sprite_alloc_animated(const char* src, int fw, int fh, int interva
     ib_sprite* out = ib_sprite_alloc(src);
     out->fw = fw;
     out->fh = fh;
-    out->num_frames = (out->_tex->size.x / fw) * (out->_tex->size.y / fh);
+    out->size.x = fw;
+    out->size.y = fh;
+    if (out->_tex->size.x % fw) {
+        ib_warn("invalid sprite %s: frame width %d does not divide texture width %d", src, fw, out->_tex->size.x);
+    }
+    if (out->_tex->size.y != fh) {
+        ib_warn("invalid sprite %s: frame height %d differs from texture height %d", src, fh, out->_tex->size.y);
+    }
+    out->num_frames = out->_tex->size.x / fw;
     out->oneshot = oneshot;
     out->interval = interval;
     return out;
