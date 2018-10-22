@@ -28,9 +28,9 @@ void obj_fog_init(ib_object* p) {
 int obj_fog_evt(ib_event* e, void* d) {
     obj_fog* self = d;
 
-    int cx, cy, cw;
+    int cx, cy, cw, ch;
     ib_graphics_get_camera(&cx, &cy);
-    ib_graphics_get_size(&cw, NULL);
+    ib_graphics_get_size(&cw, &ch);
 
     switch (e->type) {
     case IB_EVT_DRAW_BACKGROUND_POST:
@@ -41,6 +41,12 @@ int obj_fog_evt(ib_event* e, void* d) {
         ib_graphics_set_space(IB_GRAPHICS_SCREENSPACE);
         ib_graphics_point pos;
 
+        /* when rendering scale the fog image vertically to fill the screen */
+        /* do a smart scale and match the aspect ratio */
+        ib_graphics_point size = self->tex->size;
+        size.y = ch;
+        size.x = (ch * self->tex->size.x) / self->tex->size.y;
+
         pos.y = 0;
 
         for (int level = OBJ_FOG_DEPTH - 1; level >= 0; --level) {
@@ -49,10 +55,10 @@ int obj_fog_evt(ib_event* e, void* d) {
 
             /* render a fog image on each side of the divider line to ensure it covers the screen */
             pos.x = pos_absolute;
-            ib_graphics_draw_texture(self->tex, pos);
+            ib_graphics_draw_texture_size(self->tex, pos, size);
 
-            pos.x -= self->tex->size.x;
-            ib_graphics_draw_texture(self->tex, pos);
+            pos.x -= size.x;
+            ib_graphics_draw_texture_size(self->tex, pos, size);
         }
 
         ib_graphics_set_space(IB_GRAPHICS_WORLDSPACE);

@@ -17,6 +17,9 @@
 #define IB_WORLD_MAX_LAYERS 8
 #define IB_WORLD_MAX_TILE_FRAMES 8
 
+#define IB_WORLD_LAYER_TILE 0
+#define IB_WORLD_LAYER_IMAGE 1
+
 struct _ib_object;
 
 typedef void (*ib_object_fn)(struct _ib_object* p);

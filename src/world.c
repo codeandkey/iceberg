@@ -26,26 +26,41 @@ typedef struct {
 } ib_world_tile;
 
 typedef struct {
-    int offsetx, offsety, width, height;
+    int width, height;
     unsigned int* data;
+} ib_world_tile_layer;
+
+typedef struct {
+    int visible;
+    float alpha;
+    ib_graphics_texture* tex;
+} ib_world_image_layer;
+
+typedef struct {
+    int type, offsetx, offsety;
+    ib_world_tile_layer tile;
+    ib_world_image_layer img;
 } ib_world_layer;
 
 static struct {
     int initialized, twidth, theight, width, height;
-    ib_world_layer* layers[IB_WORLD_MAX_LAYERS];
+    ib_world_layer* layers[IB_WORLD_MAX_LAYERS], *ground_layer;
     ib_world_tile* tiles[IB_WORLD_MAX_TID];
     ib_hashmap* obj_type_map;
     ib_object* objects;
     int subd;
+    int num_layers;
 } _ib_world_state;
 
 static int _ib_world_load_layer(xmlNode* n);
 static int _ib_world_load_objlayer(xmlNode* n);
+static int _ib_world_load_imagelayer(xmlNode* n);
 static int _ib_world_load_tileset(xmlNode* n);
 static void _ib_world_free_types(const char* k, void* v);
 static void _ib_world_free_props(const char* k, void* v);
 static void _ib_world_unload(void);
 static int _ib_world_draw_callback(ib_event* e, void* d);
+static ib_graphics_texture* _ib_world_get_tex_basename(char* full_path); /* try and find a texture by the basename */
 
 int ib_world_init() {
     if (_ib_world_state.initialized) return ib_warn("already initialized");
@@ -112,6 +127,10 @@ int ib_world_load(const char* path) {
             _ib_world_load_layer(cur);
         }
 
+        if (!strcmp((char*) cur->name, "imagelayer")) {
+            _ib_world_load_imagelayer(cur);
+        }
+
         if (!strcmp((char*) cur->name, "objectgroup")) {
             _ib_world_load_objlayer(cur);
         }
@@ -148,11 +167,11 @@ int ib_world_contains(ib_graphics_point pos, ib_graphics_point size) {
 int ib_world_col_point(ib_graphics_point p) {
     if (p.x < 0) return 0;
     if (p.y < 0) return 0;
-    if (p.x > _ib_world_state.twidth * _ib_world_state.layers[1]->width) return 0;
-    if (p.y > _ib_world_state.theight * _ib_world_state.layers[1]->height) return 0;
+    if (p.x > _ib_world_state.twidth * _ib_world_state.ground_layer->tile.width) return 0;
+    if (p.y > _ib_world_state.theight * _ib_world_state.ground_layer->tile.height) return 0;
 
     int ptx = p.x / _ib_world_state.twidth, pty = p.y / _ib_world_state.theight;
-    return _ib_world_state.layers[1]->data[pty * _ib_world_state.width + ptx];
+    return _ib_world_state.ground_layer->tile.data[pty * _ib_world_state.width + ptx];
 }
 
 int _ib_world_load_objlayer(xmlNode* n) {
@@ -226,6 +245,7 @@ int _ib_world_load_layer(xmlNode* n) {
     char* prop_height = (char*) xmlGetProp(n, (const xmlChar*) "height");
     char* prop_offsetx = (char*) xmlGetProp(n, (const xmlChar*) "offsetx");
     char* prop_offsety = (char*) xmlGetProp(n, (const xmlChar*) "offsety");
+    char* prop_name = (char*) xmlGetProp(n, (const xmlChar*) "name");
 
     if (!(prop_id && prop_width && prop_height)) return ib_err("invalid layer properties");
 
@@ -241,16 +261,15 @@ int _ib_world_load_layer(xmlNode* n) {
     xmlFree(prop_offsetx);
     xmlFree(prop_offsety);
 
-    if (_ib_world_state.layers[id]) return ib_err("duplicate layer id %d", id);
-
     ib_world_layer* target = ib_malloc(sizeof *target);
 
-    target->width = width;
-    target->height = height;
+    target->type = IB_WORLD_LAYER_TILE;
+    target->tile.width = width;
+    target->tile.height = height;
     target->offsetx = offsetx;
     target->offsety = offsety;
 
-    target->data = ib_malloc(width * height * sizeof *target->data); /* store in row-major order starting from the top-left */
+    target->tile.data = ib_malloc(width * height * sizeof *target->tile.data); /* store in row-major order starting from the top-left */
 
     /* look for some data */
     int loaded = 0;
@@ -275,7 +294,7 @@ int _ib_world_load_layer(xmlNode* n) {
                     break;
                 }
 
-                target->data[pos++] = strtol(cv, NULL, 10);
+                target->tile.data[pos++] = strtol(cv, NULL, 10);
             }
 
             xmlFree(content);
@@ -290,8 +309,49 @@ int _ib_world_load_layer(xmlNode* n) {
         return ib_err("failed loading layer data for %d", id);
     }
 
-    _ib_world_state.layers[id] = target;
+    if (!strcmp(prop_name, "ground") || !_ib_world_state.ground_layer) _ib_world_state.ground_layer = target;
+    xmlFree(prop_name);
+
+    _ib_world_state.layers[_ib_world_state.num_layers++] = target;
     return ib_ok("loaded layer %d", id);
+}
+
+int _ib_world_load_imagelayer(xmlNode* n) {
+    char* prop_x = (char*) xmlGetProp(n, (const xmlChar*) "offsetx");
+    char* prop_y = (char*) xmlGetProp(n, (const xmlChar*) "offsety");
+    char* prop_vis = (char*) xmlGetProp(n, (const xmlChar*) "visible");
+    char* prop_alpha = (char*) xmlGetProp(n, (const xmlChar*) "opacity");
+
+    ib_world_layer* target = ib_malloc(sizeof *target);
+
+    target->type = IB_WORLD_LAYER_IMAGE;
+    target->offsetx = prop_x ? strtol(prop_x, NULL, 10) : 0;
+    target->offsety = prop_y ? strtol(prop_y, NULL, 10) : 0;
+    target->img.visible = prop_vis ? strtol(prop_vis, NULL, 10) : 1;
+    target->img.alpha = prop_alpha ? strtof(prop_alpha, NULL) : 1.0f;
+    target->img.tex = NULL;
+
+    xmlFree(prop_x);
+    xmlFree(prop_y);
+    xmlFree(prop_vis);
+    xmlFree(prop_alpha);
+
+    /* look for an image in this layer */
+    for (xmlNode* c = n->children; c; c = c->next) {
+        if (strcmp((char*) c->name, "image")) continue;
+        char* prop_src = (char*) xmlGetProp(c, (const xmlChar*) "source");
+        if (!prop_src) continue;
+        target->img.tex = _ib_world_get_tex_basename(prop_src);
+        xmlFree(prop_src);
+        break;
+    }
+
+    if (!target->img.tex) {
+        target->img.tex = ib_graphics_get_texture(IB_GRAPHICS_ERROR_TEX);
+    }
+
+    _ib_world_state.layers[_ib_world_state.num_layers++] = target;
+    return 0;
 }
 
 int _ib_world_load_tileset(xmlNode* n) {
@@ -336,18 +396,7 @@ int _ib_world_load_tileset(xmlNode* n) {
                     continue;
                 }
 
-                char* bn = basename(source);
-
-                /* tiled paths are gonna be messy, just grab the basename */
-                char* full_path = ib_malloc(strlen(bn) + strlen(IB_GRAPHICS_TEX_PREFIX) + 1);
-
-                /* looks unsafe but the buffer has an appropriate size */
-                *full_path = 0;
-                strcat(full_path, IB_GRAPHICS_TEX_PREFIX);
-                strcat(full_path, bn);
-
-                target->tex = ib_graphics_get_texture(full_path);
-                ib_free(full_path);
+                target->tex = _ib_world_get_tex_basename(source);
                 xmlFree(source);
 
                 fail = 0;
@@ -413,7 +462,10 @@ void _ib_world_unload(void) {
         ib_world_layer* cur = _ib_world_state.layers[i];
 
         if (cur) {
-            ib_free(cur->data);
+            if (cur->type == IB_WORLD_LAYER_TILE) {
+                ib_free(cur->tile.data);
+            }
+
             ib_free(cur);
             _ib_world_state.layers[i] = NULL;
         }
@@ -458,21 +510,30 @@ void ib_world_render_layer(int layer) {
 
     if (!src) return;
 
-    for (int yi = 0; yi < src->height; ++yi) {
-        pos.y = yi * _ib_world_state.theight;
+    if (src->type == IB_WORLD_LAYER_TILE) {
+        for (int yi = 0; yi < src->tile.height; ++yi) {
+            pos.y = yi * _ib_world_state.theight + src->offsety;
 
-        for (int xi = 0; xi < src->width; ++xi) {
-            ib_world_tile* t = _ib_world_state.tiles[src->data[yi * src->width + xi]];
-            if (!t) continue;
+            for (int xi = 0; xi < src->tile.width; ++xi) {
+                ib_world_tile* t = _ib_world_state.tiles[src->tile.data[yi * src->tile.width + xi]];
+                if (!t) continue;
 
-            pos.x = xi * _ib_world_state.twidth;
+                pos.x = xi * _ib_world_state.twidth + src->offsetx;
 
-            if (t->is_animated) {
-                ib_graphics_draw_texture(_ib_world_state.tiles[t->frames[t->cur_frame]->tid]->tex, pos);
-            } else {
-                ib_graphics_draw_texture(t->tex, pos);
+                if (t->is_animated) {
+                    ib_graphics_draw_texture(_ib_world_state.tiles[t->frames[t->cur_frame]->tid]->tex, pos);
+                } else {
+                    ib_graphics_draw_texture(t->tex, pos);
+                }
             }
         }
+    }
+
+    if (src->type == IB_WORLD_LAYER_IMAGE) {
+        ib_graphics_point pos;
+        pos.x = src->offsetx;
+        pos.y = src->offsety;
+        ib_graphics_draw_texture(src->img.tex, pos);
     }
 }
 
@@ -609,4 +670,19 @@ char* ib_object_get_prop_str(ib_object* p, const char* key, char* def) {
     char* prop = ib_hashmap_get(p->props, key);
     if (!prop) return def;
     return prop;
+}
+
+static ib_graphics_texture* _ib_world_get_tex_basename(char* fp) {
+    char* bn = basename(fp);
+    char* full_path = ib_malloc(strlen(bn) + strlen(IB_GRAPHICS_TEX_PREFIX) + 1);
+
+    /* looks unsafe but the buffer has an appropriate size */
+    *full_path = 0;
+    strcat(full_path, IB_GRAPHICS_TEX_PREFIX);
+    strcat(full_path, bn);
+
+    ib_graphics_texture* out = ib_graphics_get_texture(full_path);
+    ib_free(full_path);
+
+    return out;
 }
