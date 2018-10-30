@@ -1,6 +1,24 @@
 #ifndef IB_WORLD
 #define IB_WORLD
 
+/*
+ * world.h
+ * iceberg world management functions
+ *
+ * tile-based worlds require interactions with many other elements of the game
+ * so they have their own subsystem. iceberg supports TMX map formats and can load
+ * one at a time. tile and image layer ordering is respected but objects are not.
+ *
+ * to influence object drawing order objects should subscribe to specific draw events
+ * for which the order is known. (call order is in game.c)
+ *
+ * object types consist of two functions and a typename. (init, destroy functions)
+ * objects must manage their own event handling and data types
+ * the ib_object structure is initially populated with attributes as they appear in the map file;
+ * however they do not have to be respected and objects can do whatever they want
+ */
+ 
+
 #include "hashmap.h"
 #include "graphics.h"
 

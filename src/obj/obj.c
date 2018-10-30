@@ -10,6 +10,9 @@
 #include "obj_grenade.h"
 #include "obj_explosion.h"
 
+/* include example object type */
+#include "obj_example.h"
+
 void ib_obj_bind_all() {
     ib_ok("binding object types");
 
@@ -25,4 +28,7 @@ void ib_obj_bind_all() {
     ib_world_bind_object("light", obj_light_init, obj_light_destroy);
     ib_world_bind_object("grenade", obj_grenade_init, obj_grenade_destroy);
     ib_world_bind_object("explosion", obj_explosion_init, obj_explosion_destroy);
+
+    /* bind an object type with a typename, init function, and destroy function as declared in its header */
+    ib_world_bind_object("example", obj_example_init, obj_example_destroy);
 }
