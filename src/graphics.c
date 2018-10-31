@@ -111,6 +111,7 @@ ib_graphics_texture* ib_graphics_get_texture(const char* path) {
         mapped->path = strdup(path);
 
         SDL_FreeSurface(s);
+        SDL_SetTextureBlendMode(mapped->tex, SDL_BLENDMODE_BLEND);
 
         ib_hashmap_set(_ib_graphics_state.texmap, path, mapped);
     } else {

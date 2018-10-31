@@ -107,7 +107,6 @@ int obj_player_evt(ib_event* e, void* d) {
         break;
     case IB_EVT_DRAW:
         ib_graphics_set_space(IB_GRAPHICS_WORLDSPACE);
-        self->spr->alpha = 0.0f;
         ib_graphics_draw_sprite(self->spr, obj->pos);
         break;
     case IB_EVT_INPUT:
