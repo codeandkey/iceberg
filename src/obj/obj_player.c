@@ -14,9 +14,14 @@
 #define OBJ_PLAYER_BASE_WIDTH_MARGIN 2 /* shorten the cbox horizontally as well (from both sides) */
 #define OBJ_PLAYER_CAMERA_FACTOR 16.0f /* increase for slower camera movement. 1.0f <=> camera will always be on player */
 
+#define OBJ_PLAYER_BLINK_STEPS 5
+#define OBJ_PLAYER_BLINK_DIST_X 20
+#define OBJ_PLAYER_BLINK_DIST_Y 15
+
 typedef struct {
     ib_sprite* spr;
     int subd, subu, subi;
+    int in_blink;
 } obj_player;
 
 static int obj_player_evt(ib_event* e, void* d);
@@ -28,6 +33,7 @@ void obj_player_init(ib_object* p) {
     self->subd = ib_event_subscribe(IB_EVT_DRAW, obj_player_evt, p);
     self->subu = ib_event_subscribe(IB_EVT_UPDATE, obj_player_evt, p);
     self->subi = ib_event_subscribe(IB_EVT_INPUT, obj_player_evt, p);
+    self->in_blink = 0;
 
     if (p->size.x != 32 || p->size.y != 32) ib_warn("your map player size is weird and I don't understand it (%dx%d)", p->size.x, p->size.y);
 }
@@ -50,22 +56,35 @@ int obj_player_evt(ib_event* e, void* d) {
         {
 	        base_pos = obj->pos;
 
-            int xdir = OBJ_PLAYER_SPEED_X * (ib_input_get_key(SDL_SCANCODE_RIGHT) - ib_input_get_key(SDL_SCANCODE_LEFT)); /* sneaky logic */
-            int ydir = OBJ_PLAYER_SPEED_Y * (ib_input_get_key(SDL_SCANCODE_DOWN) - ib_input_get_key(SDL_SCANCODE_UP));
+            int dir_x = ib_input_get_key(SDL_SCANCODE_RIGHT) - ib_input_get_key(SDL_SCANCODE_LEFT); /* sneaky logic */
+            int dir_y = ib_input_get_key(SDL_SCANCODE_DOWN) - ib_input_get_key(SDL_SCANCODE_UP);
 
-            base_pos.x += xdir + OBJ_PLAYER_BASE_WIDTH_MARGIN;
+            int move_x = dir_x * OBJ_PLAYER_SPEED_X;
+            int move_y = dir_y * OBJ_PLAYER_SPEED_Y;
+
+            if (self->in_blink) {
+                /* extra movement if we're blinking */
+                move_x += dir_x * OBJ_PLAYER_BLINK_DIST_X;
+                move_y += dir_y * OBJ_PLAYER_BLINK_DIST_Y;
+                self->in_blink--;
+            }
+
+            base_pos.x += move_x + OBJ_PLAYER_BASE_WIDTH_MARGIN;
             base_pos.y += obj->size.y - OBJ_PLAYER_BASE_HEIGHT;
 
             if (ib_world_contains(base_pos, base_size)) {
-                obj->pos.x += xdir;
+                obj->pos.x += move_x;
             } else {
-                base_pos.x -= xdir;
+                base_pos.x -= move_x;
             }
 
-            base_pos.y += ydir;
+            base_pos.y += move_y;
 
             if (ib_world_contains(base_pos, base_size)) {
-                obj->pos.y += ydir;
+                obj->pos.y += move_y;
+            } else {
+                /* stop any blinks if we're outside of the world */
+                self->in_blink = 0;
             }
 
             /* update camera position */
@@ -93,20 +112,8 @@ int obj_player_evt(ib_event* e, void* d) {
             }
 
             /* input case that binds the lshift key */
-            if (ie->type == IB_INPUT_EVT_KEYDOWN && ie->scancode == SDL_SCANCODE_LSHIFT) {
-                ib_graphics_point orig_pos = obj->pos;
-
-                obj->pos.x += 100 * (ib_input_get_key(SDL_SCANCODE_RIGHT) - ib_input_get_key(SDL_SCANCODE_LEFT));
-                obj->pos.y += 100 * (ib_input_get_key(SDL_SCANCODE_DOWN) - ib_input_get_key(SDL_SCANCODE_UP));
-
-                base_pos = obj->pos;
-                base_pos.x += OBJ_PLAYER_BASE_WIDTH_MARGIN;
-                base_pos.y += obj->size.y - OBJ_PLAYER_BASE_HEIGHT;
-
-                if (!ib_world_contains(base_pos, base_size)) {
-                    /* undo the blink if base at new position is off the world */
-                    obj->pos = orig_pos;
-                }
+            if (ie->type == IB_INPUT_EVT_KEYDOWN && ie->scancode == SDL_SCANCODE_LSHIFT && !self->in_blink) {
+                self->in_blink = OBJ_PLAYER_BLINK_STEPS;
             }
         }
         break;
