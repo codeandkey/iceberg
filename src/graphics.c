@@ -100,7 +100,9 @@ ib_graphics_texture* ib_graphics_get_texture(const char* path) {
             }
 
             ib_warn("failed to load %s", path);
-            return ib_graphics_get_texture(IB_GRAPHICS_ERROR_TEX);
+            ib_graphics_texture* err = ib_graphics_get_texture(IB_GRAPHICS_ERROR_TEX);
+            ib_hashmap_set(_ib_graphics_state.texmap, path, err); /* not gonna work the second time */
+            return err;
         }
 
         mapped = ib_malloc(sizeof *mapped);
