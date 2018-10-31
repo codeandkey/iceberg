@@ -100,7 +100,7 @@ int obj_player_evt(ib_event* e, void* d) {
                 obj->pos.y += 100 * (ib_input_get_key(SDL_SCANCODE_DOWN) - ib_input_get_key(SDL_SCANCODE_UP));
 
                 base_pos = obj->pos;
-                base_pos.x += OBJ_PLAYER_WIDTH_MARGIN;
+                base_pos.x += OBJ_PLAYER_BASE_WIDTH_MARGIN;
                 base_pos.y += obj->size.y - OBJ_PLAYER_BASE_HEIGHT;
 
                 if (!ib_world_contains(base_pos, base_size)) {
