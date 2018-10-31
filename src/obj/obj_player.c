@@ -14,14 +14,15 @@
 #define OBJ_PLAYER_BASE_WIDTH_MARGIN 2 /* shorten the cbox horizontally as well (from both sides) */
 #define OBJ_PLAYER_CAMERA_FACTOR 16.0f /* increase for slower camera movement. 1.0f <=> camera will always be on player */
 
-#define OBJ_PLAYER_BLINK_STEPS 5
-#define OBJ_PLAYER_BLINK_DIST_X 20
-#define OBJ_PLAYER_BLINK_DIST_Y 15
+#define OBJ_PLAYER_BLINK_STEPS 10
+#define OBJ_PLAYER_BLINK_COOLDOWN 20
+#define OBJ_PLAYER_BLINK_DIST_X 10
+#define OBJ_PLAYER_BLINK_DIST_Y 7.5
 
 typedef struct {
     ib_sprite* spr;
     int subd, subu, subi;
-    int in_blink;
+    int in_blink, in_blink_cd;
 } obj_player;
 
 static int obj_player_evt(ib_event* e, void* d);
@@ -34,6 +35,7 @@ void obj_player_init(ib_object* p) {
     self->subu = ib_event_subscribe(IB_EVT_UPDATE, obj_player_evt, p);
     self->subi = ib_event_subscribe(IB_EVT_INPUT, obj_player_evt, p);
     self->in_blink = 0;
+    self->in_blink_cd = 0;
 
     if (p->size.x != 32 || p->size.y != 32) ib_warn("your map player size is weird and I don't understand it (%dx%d)", p->size.x, p->size.y);
 }
@@ -68,6 +70,10 @@ int obj_player_evt(ib_event* e, void* d) {
                 move_y += dir_y * OBJ_PLAYER_BLINK_DIST_Y;
                 self->in_blink--;
             }
+	    if (self->in_blink_cd)	{
+		/* decrement blink cooldown */
+		self->in_blink_cd--;
+	    }
 
             base_pos.x += move_x + OBJ_PLAYER_BASE_WIDTH_MARGIN;
             base_pos.y += obj->size.y - OBJ_PLAYER_BASE_HEIGHT;
@@ -86,7 +92,7 @@ int obj_player_evt(ib_event* e, void* d) {
                 /* stop any blinks if we're outside of the world */
                 self->in_blink = 0;
             }
-
+		
             /* update camera position */
 
             float target_cx = obj->pos.x + obj->size.x / 2 - cw / 2;
@@ -112,8 +118,10 @@ int obj_player_evt(ib_event* e, void* d) {
             }
 
             /* input case that binds the lshift key */
-            if (ie->type == IB_INPUT_EVT_KEYDOWN && ie->scancode == SDL_SCANCODE_LSHIFT && !self->in_blink) {
+            if (ie->type == IB_INPUT_EVT_KEYDOWN && ie->scancode == SDL_SCANCODE_LSHIFT && !self->in_blink && !self->in_blink_cd) {
+		/* when we blink start the blink steps and cooldown */
                 self->in_blink = OBJ_PLAYER_BLINK_STEPS;
+		self->in_blink_cd = OBJ_PLAYER_BLINK_COOLDOWN;
             }
         }
         break;
