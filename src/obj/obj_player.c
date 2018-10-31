@@ -94,7 +94,10 @@ int obj_player_evt(ib_event* e, void* d) {
 
             /* input case that binds the lshift key */
             if (ie->type == IB_INPUT_EVT_KEYDOWN && ie->scancode == SDL_SCANCODE_LSHIFT) {
-                ib_graphics_point orig_pos = obj->pos;
+                /* code for player blinking mechanic, -- should be replaced with
+		 * a state-change that increases player speed to preserve collision 
+		 * detection and game fluidity */
+		ib_graphics_point orig_pos = obj->pos;
 
                 obj->pos.x += 100 * (ib_input_get_key(SDL_SCANCODE_RIGHT) - ib_input_get_key(SDL_SCANCODE_LEFT));
                 obj->pos.y += 100 * (ib_input_get_key(SDL_SCANCODE_DOWN) - ib_input_get_key(SDL_SCANCODE_UP));
@@ -105,7 +108,7 @@ int obj_player_evt(ib_event* e, void* d) {
 
                 if (!ib_world_contains(base_pos, base_size)) {
                     /* undo the blink if base at new position is off the world */
-                    obj->pos = orig_pos;
+		    obj->pos = orig_pos;
                 }
             }
         }
