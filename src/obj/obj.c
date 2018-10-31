@@ -11,6 +11,7 @@
 #include "obj_explosion.h"
 #include "obj_player_trail.h"
 #include "obj_noclip.h"
+#include "obj_enemy.h"
 
 /* include example object type */
 #include "obj_example.h"
@@ -32,6 +33,8 @@ void ib_obj_bind_all() {
     ib_world_bind_object("explosion", obj_explosion_init, obj_explosion_destroy);
     ib_world_bind_object("player_trail", obj_player_trail_init, obj_player_trail_destroy);
     ib_world_bind_object("noclip", obj_noclip_init, obj_noclip_destroy);
+    ib_world_bind_object("enemy", obj_enemy_init, obj_enemy_destroy);
+	
 
     /* bind an object type with a typename, init function, and destroy function as declared in its header */
     ib_world_bind_object("example", obj_example_init, obj_example_destroy);
