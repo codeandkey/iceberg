@@ -45,8 +45,7 @@ int obj_player_evt(ib_event* e, void* d) {
     switch (e->type) {
     case IB_EVT_UPDATE:
         {
-            base_pos = obj->pos;
-
+	    base_pos = obj->pos;
             int xdir = OBJ_PLAYER_SPEED_X * (ib_input_get_key(SDL_SCANCODE_RIGHT) - ib_input_get_key(SDL_SCANCODE_LEFT)); /* sneaky logic */
             int ydir = OBJ_PLAYER_SPEED_Y * (ib_input_get_key(SDL_SCANCODE_DOWN) - ib_input_get_key(SDL_SCANCODE_UP));
 
@@ -91,6 +90,11 @@ int obj_player_evt(ib_event* e, void* d) {
             if (ie->type == IB_INPUT_EVT_KEYDOWN && ie->scancode == SDL_SCANCODE_SPACE) {
                 ib_world_create_object("grenade", NULL, NULL, obj->pos, obj->size, 0.0f, 1);
             }
+	    /* input case that binds the lshift key */
+	    if (ie->type == IB_INPUT_EVT_KEYDOWN && ie->scancode == SDL_SCANCODE_LSHIFT) {
+	    	obj->pos.x += 100 * (ib_input_get_key(SDL_SCANCODE_RIGHT) - ib_input_get_key(SDL_SCANCODE_LEFT));
+	    	obj->pos.y += 100 * (ib_input_get_key(SDL_SCANCODE_DOWN) - ib_input_get_key(SDL_SCANCODE_UP));
+	    }
         }
         break;
     }
