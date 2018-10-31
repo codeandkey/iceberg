@@ -42,15 +42,16 @@ int obj_player_evt(ib_event* e, void* d) {
 
     static ib_graphics_point base_pos, base_size;
 
+    base_size.x = obj->size.x - 2 * OBJ_PLAYER_BASE_WIDTH_MARGIN;
+    base_size.y = OBJ_PLAYER_BASE_HEIGHT;
+
     switch (e->type) {
     case IB_EVT_UPDATE:
         {
-	    base_pos = obj->pos;
+	        base_pos = obj->pos;
+
             int xdir = OBJ_PLAYER_SPEED_X * (ib_input_get_key(SDL_SCANCODE_RIGHT) - ib_input_get_key(SDL_SCANCODE_LEFT)); /* sneaky logic */
             int ydir = OBJ_PLAYER_SPEED_Y * (ib_input_get_key(SDL_SCANCODE_DOWN) - ib_input_get_key(SDL_SCANCODE_UP));
-
-            base_size.x = obj->size.x - 2 * OBJ_PLAYER_BASE_WIDTH_MARGIN;
-            base_size.y = OBJ_PLAYER_BASE_HEIGHT;
 
             base_pos.x += xdir + OBJ_PLAYER_BASE_WIDTH_MARGIN;
             base_pos.y += obj->size.y - OBJ_PLAYER_BASE_HEIGHT;
@@ -90,11 +91,23 @@ int obj_player_evt(ib_event* e, void* d) {
             if (ie->type == IB_INPUT_EVT_KEYDOWN && ie->scancode == SDL_SCANCODE_SPACE) {
                 ib_world_create_object("grenade", NULL, NULL, obj->pos, obj->size, 0.0f, 1);
             }
-	    /* input case that binds the lshift key */
-	    if (ie->type == IB_INPUT_EVT_KEYDOWN && ie->scancode == SDL_SCANCODE_LSHIFT) {
-	    	obj->pos.x += 100 * (ib_input_get_key(SDL_SCANCODE_RIGHT) - ib_input_get_key(SDL_SCANCODE_LEFT));
-	    	obj->pos.y += 100 * (ib_input_get_key(SDL_SCANCODE_DOWN) - ib_input_get_key(SDL_SCANCODE_UP));
-	    }
+
+            /* input case that binds the lshift key */
+            if (ie->type == IB_INPUT_EVT_KEYDOWN && ie->scancode == SDL_SCANCODE_LSHIFT) {
+                ib_graphics_point orig_pos = obj->pos;
+
+                obj->pos.x += 100 * (ib_input_get_key(SDL_SCANCODE_RIGHT) - ib_input_get_key(SDL_SCANCODE_LEFT));
+                obj->pos.y += 100 * (ib_input_get_key(SDL_SCANCODE_DOWN) - ib_input_get_key(SDL_SCANCODE_UP));
+
+                base_pos = obj->pos;
+                base_pos.x += OBJ_PLAYER_WIDTH_MARGIN;
+                base_pos.y += obj->size.y - OBJ_PLAYER_BASE_HEIGHT;
+
+                if (!ib_world_contains(base_pos, base_size)) {
+                    /* undo the blink if base at new position is off the world */
+                    obj->pos = orig_pos;
+                }
+            }
         }
         break;
     }
