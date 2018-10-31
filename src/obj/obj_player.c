@@ -64,6 +64,7 @@ int obj_player_evt(ib_event* e, void* d) {
 
             if (self->in_blink) {
                 /* extra movement if we're blinking */
+                ib_world_create_object("player_trail", NULL, NULL, obj->pos, obj->size, 0.0f, 1);
                 move_x += dir_x * OBJ_PLAYER_BLINK_DIST_X;
                 move_y += dir_y * OBJ_PLAYER_BLINK_DIST_Y;
                 self->in_blink--;
