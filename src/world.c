@@ -562,6 +562,21 @@ static void _ib_world_free_props(const char* k, void* v) {
     free(v); /* props are created with strdup so free() is used here */
 }
 
+void ib_world_object_foreach_by_type(const char* type, int (*cb)(ib_object* p, void* d), void* d) {
+    /* iterate objects by type */
+    /* return nonzero from the callback to terminate early */
+
+    ib_object* cur = _ib_world_state.objects;
+
+    while (cur) {
+        if (!strcmp(cur->t->name, type)) {
+            if (cb(cur, d)) return;
+        }
+
+        cur = cur->next;
+    }
+}
+
 void ib_world_bind_object(const char* type, ib_object_fn init, ib_object_fn destroy) {
     ib_object_type* t = ib_hashmap_get(_ib_world_state.obj_type_map, type);
 
@@ -601,9 +616,11 @@ ib_object* ib_world_create_object(const char* type, const char* name, ib_hashmap
     obj->size = size;
     obj->angle = rot;
     obj->visible = visible;
-    obj->next = _ib_world_state.objects;
-    if (obj->next) obj->next->prev = obj;
     obj->prev = NULL;
+
+    /* insert at head of doubly linked list */
+    obj->next = _ib_world_state.objects;
+    if (_ib_world_state.objects) _ib_world_state.objects->prev = obj;
     _ib_world_state.objects = obj;
 
     obj->t->init(obj);
@@ -611,6 +628,8 @@ ib_object* ib_world_create_object(const char* type, const char* name, ib_hashmap
 }
 
 void ib_world_destroy_object(ib_object* obj) {
+    obj->t->destroy(obj);
+
     if (obj->next) {
         obj->next->prev = obj->prev;
     }
@@ -618,10 +637,8 @@ void ib_world_destroy_object(ib_object* obj) {
     if (obj->prev) {
         obj->prev->next = obj->next;
     } else {
-        _ib_world_state.objects = NULL;
+        _ib_world_state.objects = obj->next;
     }
-
-    obj->t->destroy(obj);
 
     if (obj->props) {
         ib_hashmap_foreach(obj->props, _ib_world_free_props);
@@ -629,7 +646,6 @@ void ib_world_destroy_object(ib_object* obj) {
     }
 
     if (obj->inst_name) free(obj->inst_name);
-
     ib_free(obj);
 }
 

@@ -5,7 +5,7 @@
 #include "../mem.h"
 
 #define OBJ_PLAYER_TRAIL_TEX IB_GRAPHICS_TEXFILE("trail")
-#define OBJ_PLAYER_TRAIL_ALPHA_DEC 0.1f
+#define OBJ_PLAYER_TRAIL_ALPHA_DEC 0.2f
 
 typedef struct {
     ib_graphics_texture* tex;

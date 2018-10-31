@@ -6,6 +6,7 @@
 #include "../log.h"
 #include "../input.h"
 #include "../sprite.h"
+#include "../util.h"
 
 #define OBJ_PLAYER_TEXTURE IB_GRAPHICS_TEXFILE("player")
 #define OBJ_PLAYER_SPEED_Y 2 /* !! 3 dimensions! */
@@ -23,9 +24,13 @@ typedef struct {
     ib_sprite* spr;
     int subd, subu, subi;
     int in_blink, in_blink_cd;
+
+    ib_graphics_point base_pos, base_size; /* temporary base positions */
+    int collision_result; /* intermediate to store collision results */
 } obj_player;
 
 static int obj_player_evt(ib_event* e, void* d);
+static int obj_player_collide_cb(ib_object* nc, void* d);
 
 void obj_player_init(ib_object* p) {
     obj_player* self = p->d = ib_malloc(sizeof *self);
@@ -36,6 +41,10 @@ void obj_player_init(ib_object* p) {
     self->subi = ib_event_subscribe(IB_EVT_INPUT, obj_player_evt, p);
     self->in_blink = 0;
     self->in_blink_cd = 0;
+
+    /* self->base_size is effetively constant, base_pos is updated whenever we need to do calculations/collisions with it */
+    self->base_size.x = p->size.x - 2 * OBJ_PLAYER_BASE_WIDTH_MARGIN;
+    self->base_size.y = OBJ_PLAYER_BASE_HEIGHT;
 
     if (p->size.x != 32 || p->size.y != 32) ib_warn("your map player size is weird and I don't understand it (%dx%d)", p->size.x, p->size.y);
 }
@@ -48,15 +57,10 @@ int obj_player_evt(ib_event* e, void* d) {
     ib_graphics_get_camera(&cx, &cy);
     ib_graphics_get_size(&cw, &ch);
 
-    static ib_graphics_point base_pos, base_size;
-
-    base_size.x = obj->size.x - 2 * OBJ_PLAYER_BASE_WIDTH_MARGIN;
-    base_size.y = OBJ_PLAYER_BASE_HEIGHT;
-
     switch (e->type) {
     case IB_EVT_UPDATE:
         {
-	        base_pos = obj->pos;
+	        self->base_pos = obj->pos;
 
             int dir_x = ib_input_get_key(SDL_SCANCODE_RIGHT) - ib_input_get_key(SDL_SCANCODE_LEFT); /* sneaky logic */
             int dir_y = ib_input_get_key(SDL_SCANCODE_DOWN) - ib_input_get_key(SDL_SCANCODE_UP);
@@ -71,27 +75,40 @@ int obj_player_evt(ib_event* e, void* d) {
                 move_y += dir_y * OBJ_PLAYER_BLINK_DIST_Y;
                 self->in_blink--;
             }
-	    if (self->in_blink_cd)	{
-		/* decrement blink cooldown */
-		self->in_blink_cd--;
-	    }
 
-            base_pos.x += move_x + OBJ_PLAYER_BASE_WIDTH_MARGIN;
-            base_pos.y += obj->size.y - OBJ_PLAYER_BASE_HEIGHT;
-
-            if (ib_world_contains(base_pos, base_size)) {
-                obj->pos.x += move_x;
-            } else {
-                base_pos.x -= move_x;
+            if (self->in_blink_cd)	{
+                /* decrement blink cooldown */
+                self->in_blink_cd--;
             }
 
-            base_pos.y += move_y;
+            self->base_pos.x += move_x + OBJ_PLAYER_BASE_WIDTH_MARGIN;
+            self->base_pos.y += obj->size.y - OBJ_PLAYER_BASE_HEIGHT;
 
-            if (ib_world_contains(base_pos, base_size)) {
+            /* try and integrate horizontal position */
+            self->collision_result = 0;
+            ib_world_object_foreach_by_type("noclip", obj_player_collide_cb, self); /* will set collision_result if anything happens */
+
+            if (!self->collision_result) {
+                obj->pos.x += move_x;
+            } else {
+                self->base_pos.x -= move_x;
+            }
+
+            self->base_pos.y += move_y;
+
+            self->collision_result = 0;
+            ib_world_object_foreach_by_type("noclip", obj_player_collide_cb, self);
+
+            if (!self->collision_result) {
                 obj->pos.y += move_y;
             } else {
-                /* stop any blinks if we're outside of the world */
-                self->in_blink = 0;
+                self->base_pos.y -= move_y;
+            }
+
+            /* check for player death */
+            if (!self->in_blink && !ib_world_aabb(self->base_pos, self->base_size)) {
+                ib_world_destroy_object(obj);
+                return 0;
             }
 		
             /* update camera position */
@@ -119,9 +136,9 @@ int obj_player_evt(ib_event* e, void* d) {
 
             /* input case that binds the lshift key */
             if (ie->type == IB_INPUT_EVT_KEYDOWN && ie->scancode == SDL_SCANCODE_LSHIFT && !self->in_blink && !self->in_blink_cd) {
-		/* when we blink start the blink steps and cooldown */
+                /* when we blink start the blink steps and cooldown */
                 self->in_blink = OBJ_PLAYER_BLINK_STEPS;
-		self->in_blink_cd = OBJ_PLAYER_BLINK_COOLDOWN;
+                self->in_blink_cd = OBJ_PLAYER_BLINK_COOLDOWN;
             }
         }
         break;
@@ -139,4 +156,15 @@ void obj_player_destroy(ib_object* p) {
     ib_event_unsubscribe(self->subi);
 
     ib_free(self);
+}
+
+int obj_player_collide_cb(ib_object* nc, void* d) {
+    obj_player* self = d;
+
+    if (ib_util_col_aabb(nc->pos, nc->size, self->base_pos, self->base_size)) {
+        self->collision_result = 1;
+        return 1;
+    }
+
+    return 0;
 }

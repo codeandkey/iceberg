@@ -137,6 +137,15 @@ void ib_graphics_draw_line(ib_graphics_point a, ib_graphics_point b) {
     SDL_RenderDrawLine(_ib_graphics_state.renderer, a.x, a.y, b.x, b.y);
 }
 
+void ib_graphics_draw_outline(ib_graphics_point a, ib_graphics_point b) {
+    _ib_graphics_transform(&a);
+
+    SDL_RenderDrawLine(_ib_graphics_state.renderer, a.x, a.y, a.x, a.y + b.y);
+    SDL_RenderDrawLine(_ib_graphics_state.renderer, a.x, a.y, a.x + b.x, a.y);
+    SDL_RenderDrawLine(_ib_graphics_state.renderer, a.x + b.x, a.y, a.x + b.x, a.y + b.y);
+    SDL_RenderDrawLine(_ib_graphics_state.renderer, a.x, a.y + b.y, a.x + b.x, a.y + b.y);
+}
+
 void ib_graphics_draw_texture_ex(ib_graphics_texture* t, ib_graphics_point pos, ib_graphics_point size, float rad, int flip_x, int flip_y, float alpha) {
     ib_graphics_point src = {0};
     ib_graphics_draw_texture_portion_ex(t, src, t->size, pos, size, rad, flip_x, flip_y, alpha);
