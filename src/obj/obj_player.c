@@ -32,6 +32,7 @@ typedef struct {
 static int obj_player_evt(ib_event* e, void* d);
 static int obj_player_collide_cb(ib_object* nc, void* d);
 
+/* init */
 void obj_player_init(ib_object* p) {
     obj_player* self = p->d = ib_malloc(sizeof *self);
 
@@ -49,6 +50,7 @@ void obj_player_init(ib_object* p) {
     if (p->size.x != 32 || p->size.y != 32) ib_warn("your map player size is weird and I don't understand it (%dx%d)", p->size.x, p->size.y);
 }
 
+/* Event handling */
 int obj_player_evt(ib_event* e, void* d) {
     ib_object* obj = d;
     obj_player* self = obj->d;
@@ -107,8 +109,9 @@ int obj_player_evt(ib_event* e, void* d) {
 
             /* check for player death */
             if (!self->in_blink && !ib_world_aabb(self->base_pos, self->base_size)) {
-                ib_world_destroy_object(obj);
-                return 0;
+                ib_world_destroy_object(obj); // lol
+		//TODO: Death Sequence
+		return 0;
             }
 		
             /* update camera position */
@@ -147,6 +150,7 @@ int obj_player_evt(ib_event* e, void* d) {
     return 0;
 }
 
+/* Destroy func */
 void obj_player_destroy(ib_object* p) {
     obj_player* self = p->d;
     ib_sprite_free(self->spr);
