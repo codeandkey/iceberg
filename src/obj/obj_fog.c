@@ -64,10 +64,10 @@ int obj_fog_evt(ib_event* e, void* d) {
         ib_graphics_set_space(IB_GRAPHICS_WORLDSPACE);
         break;
     case IB_EVT_UPDATE:
-        {
-            self->scroll += OBJ_FOG_SPEED;
-        }
-        break;
+    {
+        self->scroll += OBJ_FOG_SPEED;
+    }
+    break;
     }
 
     return 0;

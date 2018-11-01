@@ -22,7 +22,7 @@ typedef struct {
     int draw_subscription; /* store a reference to our "draw event" so we can unsubscribe when we are done */
 } obj_example;
 
-/* 
+/*
  * define an event handler for the object
  * because object types don't care at all about events/etc the function can exist entirely within this file
  */

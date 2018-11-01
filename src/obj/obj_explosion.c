@@ -39,14 +39,14 @@ int obj_explosion_evt(ib_event* e, void* d) {
         }
         break;
     case IB_EVT_DRAW:
-        {
-            /* draw the explosion sprite above the explosion point */
-            ib_graphics_point spos = obj->pos;
-            spos.x -= self->spr->fw / 2;
-            spos.y -= self->spr->fh;
-            ib_graphics_draw_sprite(self->spr, spos);
-        }
-        break;
+    {
+        /* draw the explosion sprite above the explosion point */
+        ib_graphics_point spos = obj->pos;
+        spos.x -= self->spr->fw / 2;
+        spos.y -= self->spr->fh;
+        ib_graphics_draw_sprite(self->spr, spos);
+    }
+    break;
     }
 
     return 0;

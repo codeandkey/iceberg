@@ -10,13 +10,13 @@
 
 typedef struct {
     ib_sprite* spr;
-    int aitype; /* TODO: Implement multiple variants of AI (ideally passive/aggressive/defensive) */ 
-    int subd, subu; 
+    int aitype; /* TODO: Implement multiple variants of AI (ideally passive/aggressive/defensive) */
+    int subd, subu;
     ib_graphics_point base_pos, base_size;
     int collision_result; /* enemys need collision too right? #equalopportunity */
 } obj_enemy;
 
-static int obj_enemy_evt(ib_event* e, void* d); 
+static int obj_enemy_evt(ib_event* e, void* d);
 
 /* init */
 void obj_enemy_init(ib_object* p) {
@@ -43,15 +43,15 @@ void obj_enemy_destroy(ib_object* p) {
 
 /* Event handling */
 int obj_enemy_evt(ib_event* e, void* d) {
-    ib_object* obj = d; 
-    obj_enemy* self = obj->d; 
+    ib_object* obj = d;
+    obj_enemy* self = obj->d;
 
     switch(e->type) {
     case IB_EVT_UPDATE:
-    /* TODO: Enemy AI */		
-	break;
+        /* TODO: Enemy AI */
+        break;
     case IB_EVT_DRAW:
-	ib_graphics_set_space(IB_GRAPHICS_WORLDSPACE);
+        ib_graphics_set_space(IB_GRAPHICS_WORLDSPACE);
         ib_graphics_draw_sprite(self->spr, obj->pos);
         break;
     }

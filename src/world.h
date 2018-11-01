@@ -17,7 +17,7 @@
  * the ib_object structure is initially populated with attributes as they appear in the map file;
  * however they do not have to be respected and objects can do whatever they want
  */
- 
+
 
 #include "hashmap.h"
 #include "graphics.h"

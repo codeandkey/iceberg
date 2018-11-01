@@ -67,59 +67,59 @@ int obj_snow_evt(ib_event* e, void* ed) {
 
     switch (e->type) {
     case IB_EVT_UPDATE:
-        {
-            for (int i = 0; i < OBJ_SNOW_NUM_PARTS; ++i) {
-                if (d->parts[i].still) {
-                    if (!--d->parts[i].still) {
-                        /* reset dropped particle */
-                        d->parts[i].y = -10;
-                        d->parts[i].y_drop = cy + rand() % (vph * 3 / 2);
-                        d->parts[i].dropped = 0;
-                        d->parts[i].x = rand() % vpw;
-                    }
-                    continue;
-                }
-
-                d->parts[i].x += d->parts[i].dx;
-                d->parts[i].y += d->parts[i].dy;
-                d->parts[i].rot += d->parts[i].drot;
-
-                if (d->parts[i].x + d->flakes[d->parts[i].type]->size.x < cx) d->parts[i].x += vpw;
-                if (d->parts[i].x > cx + vpw) d->parts[i].x -= vpw;
-
-                if ((d->parts[i].y > d->parts[i].y_drop) && !d->parts[i].dropped) {
-                    ib_graphics_point p;
-                    p.x = d->parts[i].x;
-                    p.y = d->parts[i].y;
-                    d->parts[i].dropped = 1;
-
-                    if (ib_world_aabb(p, d->flakes[d->parts[i].type]->size)) {
-                        d->parts[i].still = d->parts[i].dropped = 60;
-                    }
-                }
-
-                if (d->parts[i].y > cy + vph) {
-                    d->parts[i].y = cy - 10;
-                    d->parts[i].x = cx + rand() % vpw;
+    {
+        for (int i = 0; i < OBJ_SNOW_NUM_PARTS; ++i) {
+            if (d->parts[i].still) {
+                if (!--d->parts[i].still) {
+                    /* reset dropped particle */
+                    d->parts[i].y = -10;
                     d->parts[i].y_drop = cy + rand() % (vph * 3 / 2);
                     d->parts[i].dropped = 0;
+                    d->parts[i].x = rand() % vpw;
+                }
+                continue;
+            }
+
+            d->parts[i].x += d->parts[i].dx;
+            d->parts[i].y += d->parts[i].dy;
+            d->parts[i].rot += d->parts[i].drot;
+
+            if (d->parts[i].x + d->flakes[d->parts[i].type]->size.x < cx) d->parts[i].x += vpw;
+            if (d->parts[i].x > cx + vpw) d->parts[i].x -= vpw;
+
+            if ((d->parts[i].y > d->parts[i].y_drop) && !d->parts[i].dropped) {
+                ib_graphics_point p;
+                p.x = d->parts[i].x;
+                p.y = d->parts[i].y;
+                d->parts[i].dropped = 1;
+
+                if (ib_world_aabb(p, d->flakes[d->parts[i].type]->size)) {
+                    d->parts[i].still = d->parts[i].dropped = 60;
                 }
             }
-        }
-        break;
-    case IB_EVT_DRAW:
-            ib_graphics_set_space(IB_GRAPHICS_WORLDSPACE);
 
-            for (int i = 0; i < OBJ_SNOW_NUM_PARTS; ++i) {
-                ib_graphics_point pos;
-
-                pos.x = d->parts[i].x;
-                pos.y = d->parts[i].y;
-
-                ib_graphics_texture* t = d->flakes[d->parts[i].type];
-                float alp = d->parts[i].still ? d->parts[i].alpha * (float) d->parts[i].still / (float) d->parts[i].dropped : d->parts[i].alpha;
-                ib_graphics_draw_texture_ex(t, pos, t->size, d->parts[i].rot, 0, 0, alp);
+            if (d->parts[i].y > cy + vph) {
+                d->parts[i].y = cy - 10;
+                d->parts[i].x = cx + rand() % vpw;
+                d->parts[i].y_drop = cy + rand() % (vph * 3 / 2);
+                d->parts[i].dropped = 0;
             }
+        }
+    }
+    break;
+    case IB_EVT_DRAW:
+        ib_graphics_set_space(IB_GRAPHICS_WORLDSPACE);
+
+        for (int i = 0; i < OBJ_SNOW_NUM_PARTS; ++i) {
+            ib_graphics_point pos;
+
+            pos.x = d->parts[i].x;
+            pos.y = d->parts[i].y;
+
+            ib_graphics_texture* t = d->flakes[d->parts[i].type];
+            float alp = d->parts[i].still ? d->parts[i].alpha * (float) d->parts[i].still / (float) d->parts[i].dropped : d->parts[i].alpha;
+            ib_graphics_draw_texture_ex(t, pos, t->size, d->parts[i].rot, 0, 0, alp);
+        }
         break;
     }
 

@@ -233,7 +233,7 @@ int _ib_world_load_objlayer(xmlNode* n) {
         xmlFree(prop_rotation);
         xmlFree(prop_visible);
     }
-    
+
     return 0;
 }
 
