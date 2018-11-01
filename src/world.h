@@ -80,6 +80,7 @@ void ib_world_bind_object(const char* name, ib_object_fn init, ib_object_fn dest
 ib_object* ib_world_create_object(const char* type, const char* name, ib_hashmap* props, ib_graphics_point pos, ib_graphics_point size, float angle, int visible);
 void ib_world_destroy_object(ib_object* p);
 void ib_world_destroy_all();
+void ib_world_object_foreach_by_type(const char* type, int (*cb)(ib_object* p, void* d), void* d);
 
 /* helpers to deal with property values, as all of the values in the hashmap are strings */
 int ib_object_get_prop_int(ib_object* p, const char* key, int def);

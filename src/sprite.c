@@ -66,3 +66,7 @@ void ib_sprite_anim_stop(ib_sprite* p) {
 void ib_sprite_anim_start(ib_sprite* p) {
     p->playing = 1;
 }
+
+void ib_sprite_anim_pause(ib_sprite* p) {
+    p->playing = 0;
+}

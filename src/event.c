@@ -75,11 +75,12 @@ int ib_event_unsubscribe(int id) {
 }
 
 void ib_event_send(ib_event* e) {
-    ib_event_sub* cur = _ib_event_subs[e->type];
+    ib_event_sub* cur = _ib_event_subs[e->type], *tmp;
 
     while (cur) {
-        cur->cb(e, cur->data);
-        cur = cur->next;
+        tmp = cur->next;
+        cur->cb(e, cur->data); /* cur could be destroyed mid event so we store a tmp */
+        cur = tmp;
     }
 }
 

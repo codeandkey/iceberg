@@ -62,6 +62,7 @@ void ib_graphics_set_texture_blend(ib_graphics_texture* t, int mode);
 void ib_graphics_set_space(int space); /* define coordinate transformation -- screenspace or worldspace */
 
 void ib_graphics_draw_line(ib_graphics_point a, ib_graphics_point b);
+void ib_graphics_draw_outline(ib_graphics_point pos, ib_graphics_point size);
 void ib_graphics_draw_texture_ex(ib_graphics_texture* t, ib_graphics_point pos, ib_graphics_point size, float rad, int flip_h, int flip_v, float alpha);
 void ib_graphics_draw_texture_portion_ex(ib_graphics_texture* t, ib_graphics_point src, ib_graphics_point srcsize, ib_graphics_point pos, ib_graphics_point size, float rad, int flip_h, int flip_v, float alpha);
 

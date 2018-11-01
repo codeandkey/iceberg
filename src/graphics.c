@@ -100,7 +100,9 @@ ib_graphics_texture* ib_graphics_get_texture(const char* path) {
             }
 
             ib_warn("failed to load %s", path);
-            return ib_graphics_get_texture(IB_GRAPHICS_ERROR_TEX);
+            ib_graphics_texture* err = ib_graphics_get_texture(IB_GRAPHICS_ERROR_TEX);
+            ib_hashmap_set(_ib_graphics_state.texmap, path, err); /* not gonna work the second time */
+            return err;
         }
 
         mapped = ib_malloc(sizeof *mapped);
@@ -111,6 +113,7 @@ ib_graphics_texture* ib_graphics_get_texture(const char* path) {
         mapped->path = strdup(path);
 
         SDL_FreeSurface(s);
+        SDL_SetTextureBlendMode(mapped->tex, SDL_BLENDMODE_BLEND);
 
         ib_hashmap_set(_ib_graphics_state.texmap, path, mapped);
     } else {
@@ -134,6 +137,15 @@ void ib_graphics_draw_line(ib_graphics_point a, ib_graphics_point b) {
     _ib_graphics_transform(&b);
 
     SDL_RenderDrawLine(_ib_graphics_state.renderer, a.x, a.y, b.x, b.y);
+}
+
+void ib_graphics_draw_outline(ib_graphics_point a, ib_graphics_point b) {
+    _ib_graphics_transform(&a);
+
+    SDL_RenderDrawLine(_ib_graphics_state.renderer, a.x, a.y, a.x, a.y + b.y);
+    SDL_RenderDrawLine(_ib_graphics_state.renderer, a.x, a.y, a.x + b.x, a.y);
+    SDL_RenderDrawLine(_ib_graphics_state.renderer, a.x + b.x, a.y, a.x + b.x, a.y + b.y);
+    SDL_RenderDrawLine(_ib_graphics_state.renderer, a.x, a.y + b.y, a.x + b.x, a.y + b.y);
 }
 
 void ib_graphics_draw_texture_ex(ib_graphics_texture* t, ib_graphics_point pos, ib_graphics_point size, float rad, int flip_x, int flip_y, float alpha) {

@@ -27,5 +27,6 @@ void ib_sprite_update(ib_sprite* p);
 /* animation control */
 void ib_sprite_anim_stop(ib_sprite* p);
 void ib_sprite_anim_start(ib_sprite* p);
+void ib_sprite_anim_pause(ib_sprite* p);
 
 #endif
