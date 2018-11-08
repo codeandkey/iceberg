@@ -56,6 +56,7 @@ void ib_graphics_set_camera(int x, int y);
 void ib_graphics_get_camera(int* x, int* y);
 void ib_graphics_get_size(int* w, int* h);
 void ib_graphics_set_color(ib_graphics_color c);
+void ib_graphics_set_render_blend(int mode);
 void ib_graphics_set_texture_color(ib_graphics_texture* t, ib_graphics_color c);
 void ib_graphics_set_texture_blend(ib_graphics_texture* t, int mode);
 

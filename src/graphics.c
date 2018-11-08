@@ -50,6 +50,7 @@ int ib_graphics_init(void) {
     }
 
     SDL_SetHint(SDL_HINT_RENDER_SCALE_QUALITY, "0");
+    SDL_SetRenderDrawBlendMode(_ib_graphics_state.renderer, SDL_BLENDMODE_BLEND);
 
     _ib_graphics_state.initialized = 1;
     return ib_ok("initialized graphics");
@@ -220,6 +221,17 @@ void ib_graphics_set_texture_blend(ib_graphics_texture* t, int mode) {
         break;
     case IB_GRAPHICS_BM_ADD:
         SDL_SetTextureBlendMode(t->tex, SDL_BLENDMODE_ADD);
+        break;
+    }
+}
+
+void ib_graphics_set_render_blend(int mode) {
+    switch(mode) {
+    case IB_GRAPHICS_BM_ALPHA:
+        SDL_SetRenderDrawBlendMode(_ib_graphics_state.renderer, SDL_BLENDMODE_BLEND);
+        break;
+    case IB_GRAPHICS_BM_ADD:
+        SDL_SetRenderDrawBlendMode(_ib_graphics_state.renderer, SDL_BLENDMODE_ADD);
         break;
     }
 }
