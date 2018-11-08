@@ -50,8 +50,13 @@ static struct {
     ib_object* objects;
     int subd;
     int num_layers;
+    ib_world_node** graph;
+    int graph_size;
 } _ib_world_state;
 
+static void _ib_world_gen_graph();
+static void _ib_world_free_graph();
+static ib_world_node* _ib_world_get_node(int ix, int iy);
 static int _ib_world_load_layer(xmlNode* n);
 static int _ib_world_load_objlayer(xmlNode* n);
 static int _ib_world_load_imagelayer(xmlNode* n);
@@ -71,6 +76,7 @@ int ib_world_init() {
     _ib_world_state.obj_type_map = ib_hashmap_alloc(256);
     _ib_world_state.initialized = 1;
     _ib_world_state.subd = ib_event_subscribe(IB_EVT_DRAW_WORLD, _ib_world_draw_callback, NULL);
+    _ib_world_state.graph = NULL;
 
     return ib_ok("initialized world");
 }
@@ -141,6 +147,10 @@ int ib_world_load(const char* path) {
     }
 
     xmlFreeDoc(doc);
+
+    /* generate AI graph */
+    _ib_world_gen_graph();
+
     return ib_ok("loaded %s", path);
 }
 
@@ -701,4 +711,198 @@ static ib_graphics_texture* _ib_world_get_tex_basename(char* fp) {
     ib_free(full_path);
 
     return out;
+}
+
+void _ib_world_free_graph() {
+    if (_ib_world_state.graph) {
+        for (int i = 0; i < _ib_world_state.graph_size; ++i) {
+            if (_ib_world_state.graph[i]) {
+                ib_free(_ib_world_state.graph[i]);
+            }
+        }
+
+        _ib_world_state.graph = NULL;
+    }
+}
+
+void _ib_world_gen_graph() {
+    _ib_world_free_graph();
+    ib_ok("generating AI graph..");
+
+    ib_world_tile_layer gl = _ib_world_state.ground_layer->tile;
+    _ib_world_state.graph_size = gl.width * gl.height;
+
+    /* allocate space for graph nodes */
+    _ib_world_state.graph = ib_malloc(_ib_world_state.graph_size * sizeof *_ib_world_state.graph);
+    ib_zero(_ib_world_state.graph, _ib_world_state.graph_size * sizeof *_ib_world_state.graph);
+
+    int num_nodes = 0, num_edges = 0;
+
+    /* walk through tiles in the ground layer and generate/link nodes */
+    for (int y = 0; y < gl.height; ++y) {
+        for (int x = 0; x < gl.width; ++x) {
+            ib_world_node* cnode = _ib_world_get_node(x, y);
+
+            if (!cnode) continue;
+            num_nodes++;
+
+            /* now walk around and add children */
+            int ind = 0;
+            for (int dx = -1; dx <= 1; ++dx) {
+                for (int dy = -1; dy <= 1; ++dy) {
+                    if (!dx && !dy) continue;
+                    cnode->children[ind] = _ib_world_get_node(x + dx, y + dy);
+                    if (cnode->children[ind]) num_edges++;
+                    ind++;
+                }
+            }
+        }
+    }
+
+    ib_ok("generated AI graph with %d vertices, %d directed edges", num_nodes, num_edges);
+}
+
+ib_world_node* _ib_world_get_node(int ix, int iy) {
+    /* get a node at a location IF there is a tile there or return NULL */
+    ib_world_tile_layer gl = _ib_world_state.ground_layer->tile;
+
+    /* disregard out of bounds locations */
+    if (ix < 0 || ix >= gl.width || iy < 0 || iy >= gl.height) return NULL;
+
+    /* disregard missing blocks */
+    if (!gl.data[iy * gl.width + ix]) return NULL;
+
+    /* check to see if there's already a node for this location */
+    if (_ib_world_state.graph[iy * gl.width + ix]) return _ib_world_state.graph[iy * gl.width + ix];
+
+    /* generate a node but do not link any children */
+    ib_world_node* out = ib_malloc(sizeof *out);
+    ib_zero(out, sizeof *out);
+
+    out->center_x = ix * _ib_world_state.twidth + _ib_world_state.twidth / 2;
+    out->center_y = iy * _ib_world_state.theight + _ib_world_state.theight / 2;
+
+    _ib_world_state.graph[iy * gl.width + ix] = out;
+
+    return out;
+}
+
+void _ib_world_dfs(ib_world_node* from, ib_world_node* to) {
+    /* DFS from one node to another, setting last_path to track the path */
+    /* we use a distance heuristic to keep things fast */
+
+    /* we made it */
+    if (from == to) {
+        to->visited = 1;
+        return;
+    }
+
+    /* first, compute distance of each child */
+    float dists[8];
+    int ordered[8] = {0, 1, 2, 3, 4, 5, 6, 7};
+
+    for (int i = 0; i < 8; ++i) {
+        ib_world_node* cc = from->children[i];
+        if (cc) {
+            dists[i] = sqrt(pow(cc->center_x - to->center_x, 2) + pow(cc->center_y - to->center_y, 2));
+        } else {
+            dists[i] = -1.0f;
+        }
+    }
+
+    /* fast selection sort on dists and perform the same operations on ordered to get the order of children */
+    for (int i = 0; i < 8; ++i) {
+        float cmin = dists[i];
+        int cpos = i;
+
+        for (int j = i; j < 8; ++j) {
+            if (dists[j] < cmin && dists[j] >= 0.0f) {
+                cmin = dists[j];
+                cpos = j;
+            }
+        }
+
+        float tmp = dists[i];
+        dists[i] = dists[cpos];
+        dists[cpos] = tmp;
+
+        int tmp_o = ordered[i];
+        ordered[i] = ordered[cpos];
+        ordered[cpos] = tmp_o;
+    }
+
+    from->visited = 1; /* prevent the next step from going backwards */
+
+    /* now iterate through the children based on `ordered` */
+    for (int i = 0; i < 8; ++i) {
+        ib_world_node* child = from->children[ordered[i]];
+        if (child && !child->visited) {
+            /* consider child */
+            child->path_last = from;
+            _ib_world_dfs(child, to);
+        }
+    }
+}
+
+ib_world_node* _ib_world_compute_path(int fx, int fy, int tx, int ty) {
+    /* compute path from one point to another */
+
+    /* first, grab block nodes */
+    ib_world_node* from = _ib_world_get_node(fx / _ib_world_state.twidth, fy / _ib_world_state.theight);
+    ib_world_node* to = _ib_world_get_node(tx / _ib_world_state.twidth, ty / _ib_world_state.theight);
+
+    if (!from || !to) return NULL;
+
+    /* then, perform a heuristic DFS towards the destination */
+    for (int i = 0; i < _ib_world_state.graph_size; ++i) {
+        if (_ib_world_state.graph[i]) {
+            _ib_world_state.graph[i]->visited = 0;
+            _ib_world_state.graph[i]->path_last = NULL;
+        }
+    }
+
+    _ib_world_dfs(from, to);
+    return to->path_last ? to : NULL;
+}
+
+int ib_world_path_to(int fx, int fy, int tx, int ty, int* dx, int* dy) {
+    /* return the direction you should move if you really want to get somewhere */
+    ib_world_node* tail = NULL, *last = NULL;
+    if (!(tail = _ib_world_compute_path(fx, fy, tx, ty))) return 0;
+
+    while (tail) {
+        last = tail;
+        tail = tail->path_last;
+    }
+
+    if (dx) *dx = last->center_x - fx;
+    if (dy) *dy = last->center_y - fy;
+
+    return 1;
+}
+
+void ib_world_render_path(int fx, int fy, int tx, int ty) {
+    ib_world_node* tail = NULL;
+    if (!(tail = _ib_world_compute_path(fx, fy, tx, ty))) return;
+
+    /* draw some lines */
+    ib_graphics_color col = { 0xA0, 0x00, 0xFF, 0x50 };
+    ib_graphics_set_render_blend(IB_GRAPHICS_BM_ALPHA);
+    ib_graphics_set_color(col);
+
+    ib_graphics_point a, b;
+
+    /* walk back the path and render lines on the way */
+    while (tail) {
+        if (tail->path_last) {
+            /* render a line here */
+            a.x = tail->center_x;
+            a.y = tail->center_y;
+            b.x = tail->path_last->center_x;
+            b.y = tail->path_last->center_y;
+            ib_graphics_draw_line(a, b);
+        }
+
+        tail = tail->path_last;
+    }
 }

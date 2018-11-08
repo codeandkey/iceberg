@@ -58,6 +58,12 @@ typedef struct _ib_object {
     int visible;
 } ib_object;
 
+typedef struct _ib_world_node {
+    int center_x, center_y, visited;
+    struct _ib_world_node* children[8];
+    struct _ib_world_node* path_last;
+} ib_world_node;
+
 int ib_world_init();
 void ib_world_free();
 
@@ -68,6 +74,9 @@ int ib_world_max_layer();
 void ib_world_update_animations(int dt);
 void ib_world_render_layer(int layer);
 void ib_world_render();
+
+/* returns 0 if there is no path, otherwise returns 1 and sets dirx, diry to desired direction */
+int ib_world_path_to(int from_x, int from_y, int to_x, int to_y, int* dirx, int* diry);
 
 /* will need rewrite after transition to chunks */
 int ib_world_aabb(ib_graphics_point pos, ib_graphics_point size);

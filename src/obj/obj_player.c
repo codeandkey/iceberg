@@ -128,6 +128,7 @@ int obj_player_evt(ib_event* e, void* d) {
     case IB_EVT_DRAW:
         ib_graphics_set_space(IB_GRAPHICS_WORLDSPACE);
         ib_graphics_draw_sprite(self->spr, obj->pos);
+        ib_world_render_path(50, 500, obj->pos.x + obj->size.x / 2, obj->pos.y + obj->size.y / 2);
         break;
     case IB_EVT_INPUT:
     {
