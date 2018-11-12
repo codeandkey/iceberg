@@ -2,6 +2,7 @@
 #define IB_MEM
 
 #include <stdlib.h>
+#include <string.h>
 
 #define ib_malloc(n) malloc(n)
 #define ib_free(p) (free(p), 0)

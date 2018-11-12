@@ -1,14 +1,14 @@
 #include "obj_player_trail.h"
 
-#include "../graphics.h"
+#include "../graphics/graphics.h"
 #include "../event.h"
 #include "../mem.h"
 
-#define OBJ_PLAYER_TRAIL_TEX IB_GRAPHICS_TEXFILE("trail")
+#define OBJ_PLAYER_TRAIL_TEX IB_TEXTURE_FILE("trail")
 #define OBJ_PLAYER_TRAIL_ALPHA_DEC 0.2f
 
 typedef struct {
-    ib_graphics_texture* tex;
+    ib_texture* tex;
     float alpha;
     int subd, subu;
 } obj_player_trail;
@@ -39,8 +39,9 @@ int obj_player_trail_evt(ib_event* e, void* d) {
         }
         break;
     case IB_EVT_DRAW:
-        ib_graphics_set_space(IB_GRAPHICS_WORLDSPACE);
-        ib_graphics_draw_texture_alpha(self->tex, obj->pos, self->alpha);
+        ib_graphics_opt_reset();
+        ib_graphics_opt_alpha(self->alpha);
+        ib_graphics_tex_draw_ex(self->tex, obj->pos, obj->size);
         break;
     }
 

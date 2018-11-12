@@ -1,9 +1,9 @@
 CC = gcc
 CFLAGS = -std=gnu99 -Wall -g -Wno-unused-value -I/usr/include/libxml2
-LDFLAGS = -lm -ldl -lSDL2 -lSDL2_image -lopenal -lxml2
+LDFLAGS = -lm -ldl -lSDL2 -lopenal -lxml2
 
-SOURCES = $(wildcard src/*.c) $(wildcard src/obj/*.c)
-HEADERS = $(wildcard src/*.h) $(wildcard src/obj/*.h)
+SOURCES = $(wildcard src/*.c) $(wildcard src/obj/*.c) $(wildcard src/graphics/*.c)
+HEADERS = $(wildcard src/*.h) $(wildcard src/obj/*.h) $(wildcard src/graphics/*.h)
 OBJECTS = $(SOURCES:.c=.o)
 
 OUTPUT = iceberg-test

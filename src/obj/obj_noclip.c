@@ -1,6 +1,6 @@
 #include "obj_noclip.h"
 
-#include "../graphics.h"
+#include "../graphics/graphics.h"
 #include "../event.h"
 #include "../mem.h"
 #include "../config.h"
@@ -24,11 +24,11 @@ void obj_noclip_init(ib_object* p) {
 
 int obj_noclip_evt(ib_event* e, void* d) {
     ib_object* obj = d;
-    ib_graphics_color c = { 0xFF, 0x00, 0x00, 0xAA };
+    ib_color c = { 0xFF, 0x00, 0x00, 0xAA };
 
-    ib_graphics_set_space(IB_GRAPHICS_WORLDSPACE);
-    ib_graphics_set_color(c);
-    ib_graphics_draw_outline(obj->pos, obj->size);
+    ib_graphics_opt_reset();
+    ib_graphics_opt_color(c);
+    ib_graphics_prim_outline(obj->pos, obj->size);
 
     return 0;
 }

@@ -2,12 +2,14 @@
 #include "mem.h"
 #include "log.h"
 #include "config.h"
-#include "graphics.h"
+#include "graphics/graphics.h"
 #include "event.h"
 #include "input.h"
 #include "world.h"
 #include "audio.h"
 #include "obj/obj.h"
+
+#include <SDL2/SDL.h>
 
 static int _ib_game_should_quit;
 
@@ -95,7 +97,6 @@ int ib_game_run(void) {
         ib_event_add(IB_EVT_DRAW_WORLD_LIGHTS, NULL, 0);
 
         ib_event_work();
-
         ib_graphics_swap();
     }
 

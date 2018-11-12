@@ -1,17 +1,17 @@
 #include "obj_bg.h"
 
-#include "../graphics.h"
+#include "../graphics/graphics.h"
 #include "../event.h"
 #include "../mem.h"
 #include "../log.h"
 
 #define OBJ_BG_DEF_PFX 0.5
 #define OBJ_BG_DEF_PFY 0.5
-#define OBJ_BG_DEF_IMG IB_GRAPHICS_TEXFILE("bg")
+#define OBJ_BG_DEF_IMG IB_TEXTURE_FILE("bg")
 #define OBJ_BG_DEF_SCROLL_PER_SEC 1
 
 typedef struct {
-    ib_graphics_texture* img;
+    ib_texture* img;
     double pfx, pfy;
     int sub_draw;
 } obj_bg;
@@ -34,13 +34,13 @@ void obj_bg_init(ib_object* p) {
 int obj_bg_evt(ib_event* e, void* d) {
     obj_bg* self = (obj_bg*) d;
 
-    ib_graphics_point pos = {0}, screensize = {0};
-    ib_graphics_set_space(IB_GRAPHICS_SCREENSPACE);
-    ib_graphics_get_size(&screensize.x, &screensize.y);
+    ib_ivec2 pos = {0}, screensize = {0};
 
     switch (e->type) {
     case IB_EVT_DRAW_BACKGROUND:
-        ib_graphics_draw_texture_size(self->img, pos, screensize);
+        ib_graphics_opt_reset();
+        ib_graphics_get_camera(&pos, &screensize);
+        ib_graphics_tex_draw_ex(self->img, pos, screensize);
         break;
     }
 

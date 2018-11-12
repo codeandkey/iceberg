@@ -1,12 +1,11 @@
 #include "obj_explosion.h"
-#include "../graphics.h"
+#include "../graphics/graphics.h"
 #include "../mem.h"
 #include "../event.h"
-#include "../sprite.h"
 
 #include <math.h>
 
-#define OBJ_EXPLOSION_TEX IB_GRAPHICS_TEXFILE("explosion")
+#define OBJ_EXPLOSION_TEX IB_TEXTURE_FILE("explosion")
 #define OBJ_EXPLOSION_SPARKS_MAX 30
 #define OBJ_EXPLOSION_SPARKS_MIN 15
 #define OBJ_EXPLOSION_SPARK_VEL_MAX 30
@@ -34,8 +33,10 @@ static int obj_explosion_evt(ib_event* e, void* d);
 void obj_explosion_init(ib_object* p) {
     obj_explosion* self = p->d = ib_malloc(sizeof *self);
 
-    self->spr = ib_sprite_alloc_animated(OBJ_EXPLOSION_TEX, 64, 64, 30, 1);
-    ib_sprite_anim_start(self->spr);
+    self->spr = ib_sprite_alloc(OBJ_EXPLOSION_TEX, 64, 64, 30);
+
+    ib_sprite_oneshot(self->spr, 1);
+    ib_sprite_start(self->spr);
 
     self->subu = ib_event_subscribe(IB_EVT_UPDATE, obj_explosion_evt, p);
     self->subd = ib_event_subscribe(IB_EVT_DRAW, obj_explosion_evt, p);
@@ -64,7 +65,6 @@ int obj_explosion_evt(ib_event* e, void* d) {
 
     switch (e->type) {
     case IB_EVT_UPDATE:
-        ib_sprite_update(self->spr);
         should_die = 1;
         for (int i = 0; i < self->num_sparks; ++i) {
             /* update spark positions and values */
@@ -85,29 +85,31 @@ int obj_explosion_evt(ib_event* e, void* d) {
     {
         /* draw the explosion sprite above the explosion point */
         if (self->spr->playing) {
-            ib_graphics_point spos = obj->pos;
-            spos.x -= self->spr->fw / 2;
-            spos.y -= self->spr->fh;
-            ib_graphics_draw_sprite(self->spr, spos);
+            ib_graphics_opt_reset();
+            ib_ivec2 spos = obj->pos;
+            spos.x -= self->spr->frame.x / 2;
+            spos.y -= self->spr->frame.y;
+            ib_graphics_tex_draw_sprite(self->spr, spos);
         }
 
+        ib_graphics_opt_reset();
+        ib_graphics_opt_blend(IB_GRAPHICS_BM_ADD);
+
         /* draw sparks */
-        ib_graphics_set_render_blend(IB_GRAPHICS_BM_ADD);
         for (int i = 0; i < self->num_sparks; ++i) {
             obj_explosion_spark* sp = self->sparks + i;
-            ib_graphics_point a, b;
+            ib_ivec2 a, b;
             a.x = sp->x;
             a.y = sp->y;
             b.x = a.x + cosf(sp->ang) * sp->len;
             b.y = a.y + sinf(sp->ang) * sp->len;
 
-            ib_graphics_color col = { 0xFF, 0xFF, 0x10, 0xFF };
+            ib_color col = { 0xFF, 0xFF, 0x10, 0xFF };
             col.a = sp->alpha * 255.0f;
 
-            ib_graphics_set_color(col);
-            ib_graphics_draw_line(a, b);
+            ib_graphics_opt_color(col);
+            ib_graphics_prim_line(a, b);
         }
-        ib_graphics_set_render_blend(IB_GRAPHICS_BM_ALPHA);
     }
     break;
     }

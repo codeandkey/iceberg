@@ -20,7 +20,7 @@
 
 
 #include "hashmap.h"
-#include "graphics.h"
+#include "graphics/graphics.h"
 
 /* in an ideal world we would have the world as an object itself
  * however, almost every object in the game will interact with the world somehow
@@ -53,7 +53,7 @@ typedef struct _ib_object {
     ib_object_type* t; /* don't mutate */
     struct _ib_object* next, *prev; /* good lord don't mutate */
     void* d; /* go for it */
-    ib_graphics_point pos, size; /* object don't really have to respect these at all, feel free to mutate */
+    ib_ivec2 pos, size; /* object don't really have to respect these at all, feel free to mutate */
     float angle; /* just properties loaded from the map */
     int visible;
 } ib_object;
@@ -70,14 +70,14 @@ void ib_world_render_layer(int layer);
 void ib_world_render();
 
 /* will need rewrite after transition to chunks */
-int ib_world_aabb(ib_graphics_point pos, ib_graphics_point size);
-int ib_world_contains(ib_graphics_point pos, ib_graphics_point size);
-int ib_world_col_point(ib_graphics_point pos);
+int ib_world_aabb(ib_ivec2 pos, ib_ivec2 size);
+int ib_world_contains(ib_ivec2 pos, ib_ivec2 size);
+int ib_world_col_point(ib_ivec2 pos);
 
 /* ib_world_create_object returns a handle to the object but in most cases you don't really need it */
 
 void ib_world_bind_object(const char* name, ib_object_fn init, ib_object_fn destroy);
-ib_object* ib_world_create_object(const char* type, const char* name, ib_hashmap* props, ib_graphics_point pos, ib_graphics_point size, float angle, int visible);
+ib_object* ib_world_create_object(const char* type, const char* name, ib_hashmap* props, ib_ivec2 pos, ib_ivec2 size, float angle, int visible);
 void ib_world_destroy_object(ib_object* p);
 void ib_world_destroy_all();
 void ib_world_object_foreach_by_type(const char* type, int (*cb)(ib_object* p, void* d), void* d);

@@ -2,17 +2,17 @@
 
 #include "../mem.h"
 #include "../event.h"
-#include "../graphics.h"
+#include "../graphics/graphics.h"
 
 #define OBJ_LIGHT_ALPHA_DEC 0.01f /* alpha decrement */
 #define OBJ_LIGHT_BASE_ALPHA 0.7f /* resting alpha */
 #define OBJ_LIGHT_FLICKER_ALPHA 0.8f /* flicker alpha */
 #define OBJ_LIGHT_MIN_FLICKER_UPDATE 30 /* minimum updates before next flicker */
 #define OBJ_LIGHT_MAX_FLICKER_UPDATE 50
-#define OBJ_LIGHT_TEX IB_GRAPHICS_TEXFILE("light")
+#define OBJ_LIGHT_TEX IB_TEXTURE_FILE("light")
 
 typedef struct {
-    ib_graphics_texture* tex;
+    ib_texture* tex;
     float alpha;
     int next_flicker, subd, subu;
 } obj_light;
@@ -25,7 +25,6 @@ void obj_light_init(ib_object* p) {
     self->next_flicker = 1;
 
     self->tex = ib_graphics_get_texture(OBJ_LIGHT_TEX);
-    ib_graphics_set_texture_blend(self->tex, IB_GRAPHICS_BM_ADD);
 
     self->subd = ib_event_subscribe(IB_EVT_DRAW_WORLD_LIGHTS, obj_light_evt, p);
     self->subu = ib_event_subscribe(IB_EVT_UPDATE, obj_light_evt, p);
@@ -46,7 +45,10 @@ int obj_light_evt(ib_event* e, void* d) {
         }
         break;
     case IB_EVT_DRAW_WORLD_LIGHTS:
-        ib_graphics_draw_texture_ex(self->tex, obj->pos, obj->size, 0.0f, 0, 0, self->alpha);
+        ib_graphics_opt_reset();
+        ib_graphics_opt_blend(IB_GRAPHICS_BM_ADD);
+        ib_graphics_opt_alpha(self->alpha);
+        ib_graphics_tex_draw_ex(self->tex, obj->pos, obj->size);
         break;
     }
 

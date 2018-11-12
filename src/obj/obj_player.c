@@ -1,14 +1,14 @@
 #include "obj_player.h"
 
-#include "../graphics.h"
+#include "../graphics/graphics.h"
 #include "../event.h"
 #include "../mem.h"
 #include "../log.h"
 #include "../input.h"
-#include "../sprite.h"
 #include "../util.h"
+#include "../types.h"
 
-#define OBJ_PLAYER_TEXTURE IB_GRAPHICS_TEXFILE("player")
+#define OBJ_PLAYER_TEXTURE IB_TEXTURE_FILE("player")
 #define OBJ_PLAYER_SPEED_Y 2 /* !! 3 dimensions! */
 #define OBJ_PLAYER_SPEED_X 3
 #define OBJ_PLAYER_BASE_HEIGHT 12 /* height of the collision box for world movement, base at the bottom of the player sprite */
@@ -25,7 +25,7 @@ typedef struct {
     int subd, subu, subi;
     int in_blink, in_blink_cd;
 
-    ib_graphics_point base_pos, base_size; /* temporary base positions */
+    ib_ivec2 base_pos, base_size; /* temporary base positions */
     int collision_result; /* intermediate to store collision results */
 } obj_player;
 
@@ -36,7 +36,7 @@ static int obj_player_collide_cb(ib_object* nc, void* d);
 void obj_player_init(ib_object* p) {
     obj_player* self = p->d = ib_malloc(sizeof *self);
 
-    self->spr = ib_sprite_alloc(OBJ_PLAYER_TEXTURE);
+    self->spr = ib_sprite_alloc(OBJ_PLAYER_TEXTURE, 32, 32, 0);
     self->subd = ib_event_subscribe(IB_EVT_DRAW, obj_player_evt, p);
     self->subu = ib_event_subscribe(IB_EVT_UPDATE, obj_player_evt, p);
     self->subi = ib_event_subscribe(IB_EVT_INPUT, obj_player_evt, p);
@@ -55,9 +55,8 @@ int obj_player_evt(ib_event* e, void* d) {
     ib_object* obj = d;
     obj_player* self = obj->d;
 
-    int cx, cy, cw, ch;
-    ib_graphics_get_camera(&cx, &cy);
-    ib_graphics_get_size(&cw, &ch);
+    ib_ivec2 cpos, csize;
+    ib_graphics_get_camera(&cpos, &csize);
 
     switch (e->type) {
     case IB_EVT_UPDATE:
@@ -116,18 +115,18 @@ int obj_player_evt(ib_event* e, void* d) {
 
         /* update camera position */
 
-        float target_cx = obj->pos.x + obj->size.x / 2 - cw / 2;
-        float target_cy = obj->pos.y + obj->size.y / 2 - ch / 2;
+        float target_cx = obj->pos.x + obj->size.x / 2 - csize.x / 2;
+        float target_cy = obj->pos.y + obj->size.y / 2 - csize.y / 2;
 
-        float new_cx = (float) cx + (target_cx - (float) cx) / OBJ_PLAYER_CAMERA_FACTOR;
-        float new_cy = (float) cy + (target_cy - (float) cy) / OBJ_PLAYER_CAMERA_FACTOR;
+        cpos.x = (float) cpos.x + (target_cx - (float) cpos.x) / OBJ_PLAYER_CAMERA_FACTOR;
+        cpos.y = (float) cpos.y + (target_cy - (float) cpos.y) / OBJ_PLAYER_CAMERA_FACTOR;
 
-        ib_graphics_set_camera((int) new_cx, (int) new_cy);
+        ib_graphics_set_camera(cpos, csize);
     }
     break;
     case IB_EVT_DRAW:
-        ib_graphics_set_space(IB_GRAPHICS_WORLDSPACE);
-        ib_graphics_draw_sprite(self->spr, obj->pos);
+        ib_graphics_opt_reset();
+        ib_graphics_tex_draw_sprite(self->spr, obj->pos);
         break;
     case IB_EVT_INPUT:
     {

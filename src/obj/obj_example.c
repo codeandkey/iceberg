@@ -8,7 +8,7 @@
 
 /* include engine functions for memory, logging, graphics, and events */
 #include "../event.h"
-#include "../graphics.h"
+#include "../graphics/graphics.h"
 #include "../log.h"
 #include "../mem.h"
 
@@ -17,7 +17,7 @@
  * for this type must be contained in the structure */
 
 typedef struct {
-    ib_graphics_texture* tex; /* store the texture for our object */
+    ib_texture* tex; /* store the texture for our object */
     int example_user_value; /* store 1 integer which we'll read in from a parameter */
     int draw_subscription; /* store a reference to our "draw event" so we can unsubscribe when we are done */
 } obj_example;
@@ -97,7 +97,8 @@ int obj_example_evt(ib_event* e, void* d) {
          * these fields are initially populated with the data from the map so we can just use that
          */
 
-        ib_graphics_draw_texture_size(self->tex, obj->pos, obj->size);
+        ib_graphics_opt_reset();
+        ib_graphics_tex_draw_ex(self->tex, obj->pos, obj->size);
         break;
     }
 
