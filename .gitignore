@@ -2,3 +2,4 @@ ib.cfg
 iceberg-test
 src/*.o
 src/obj/*.o
+src/graphics/*.o
