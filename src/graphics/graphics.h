@@ -86,7 +86,7 @@ void ib_graphics_opt_space(int space);
 /* opt shortcut functions */
 void ib_graphics_opt_alpha(float a); /* opt_color() but just alpha */
 
-void ib_graphics_opt_pos_tex(ib_texture* t, ib_ivec2 pos); /* pos but from the top-left of a texture */
-void ib_graphics_opt_scale_tex(ib_texture* t, ib_ivec2 size); /* auto-scale a texture to a size */
+/* auto compute pos and scale for a rect */
+void ib_graphics_opt_rect(ib_ivec2 pos, ib_ivec2 size);
 
 #endif

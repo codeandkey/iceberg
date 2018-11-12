@@ -269,21 +269,12 @@ void ib_graphics_tex_draw(ib_texture* t) {
 }
 
 void ib_graphics_tex_draw_ex(ib_texture* t, ib_ivec2 pos, ib_ivec2 size) {
-    ib_graphics_opt_scale_tex(t, size);
-    ib_graphics_opt_pos_tex(t, pos);
+    ib_graphics_opt_rect(pos, size);
     ib_graphics_tex_draw(t);
 }
 
 void ib_graphics_tex_draw_sprite(ib_sprite* s, ib_ivec2 pos) {
-    /* offset position to match tex corner */
-    pos.x += s->frame.x / 2;
-    pos.y += s->frame.y / 2;
-    ib_graphics_opt_pos(pos);
-
-    ib_vec2 scale;
-    scale.x = s->frame.x / 2.0f;
-    scale.y = s->frame.y / 2.0f;
-    ib_graphics_opt_scale(scale);
+    ib_graphics_opt_rect(pos, s->frame);
 
     ib_texture_bind(s->tex);
 
@@ -370,21 +361,17 @@ void ib_graphics_opt_space(int mode) {
     }
 }
 
-void ib_graphics_opt_scale_tex(ib_texture* t, ib_ivec2 size) {
-    /* compute appropriate scale factors for a texture */
+void ib_graphics_opt_rect(ib_ivec2 pos, ib_ivec2 size) {
     ib_vec2 sc;
 
-    sc.x = (float) t->size.x / 2.0f;
-    sc.y = (float) t->size.y / 2.0f;
+    sc.x = (float) size.x / 2.0f;
+    sc.y = (float) size.y / 2.0f;
 
-    ib_graphics_opt_scale(sc);
-}
+    pos.x += size.x / 2;
+    pos.y += size.y / 2;
 
-void ib_graphics_opt_pos_tex(ib_texture* t, ib_ivec2 pos) {
-    /* compute an additonal pos with the texture size offsets */
-    pos.x += t->size.x / 2;
-    pos.y += t->size.y / 2;
     ib_graphics_opt_pos(pos);
+    ib_graphics_opt_scale(sc);
 }
 
 void ib_graphics_opt_alpha(float a) {
