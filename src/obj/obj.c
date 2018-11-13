@@ -11,6 +11,7 @@
 #include "obj_noclip.h"
 #include "obj_enemy.h"
 #include "obj_fog.h"
+#include "obj_bg.h"
 
 /* include example object type */
 #include "obj_example.h"
@@ -23,6 +24,7 @@ void ib_obj_bind_all() {
      * to add it to the game.
      * ---- */
 
+    ib_world_bind_object("bg", obj_bg_init, obj_bg_destroy);
     ib_world_bind_object("snow", obj_snow_init, obj_snow_destroy);
     ib_world_bind_object("player", obj_player_init, obj_player_destroy);
     ib_world_bind_object("light", obj_light_init, obj_light_destroy);
