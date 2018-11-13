@@ -27,8 +27,6 @@ typedef struct {
     obj_snow_flake parts[OBJ_SNOW_NUM_PARTS];
 } obj_snow;
 
-static int obj_snow_evt(ib_event* e, void* d);
-
 void obj_snow_init(ib_object* p) {
     obj_snow* d = p->d = ib_malloc(sizeof *d);
 
@@ -53,12 +51,12 @@ void obj_snow_init(ib_object* p) {
         d->parts[i].still = 0;
     }
 
-    ib_event_subscribe(IB_EVT_DRAW, obj_snow_evt, d);
-    ib_event_subscribe(IB_EVT_UPDATE, obj_snow_evt, d);
+    ib_object_subscribe(p, IB_EVT_DRAW);
+    ib_object_subscribe(p, IB_EVT_UPDATE);
 }
 
-int obj_snow_evt(ib_event* e, void* ed) {
-    obj_snow* d = ed;
+void obj_snow_evt(ib_event* e, ib_object* obj) {
+    obj_snow* d = obj->d;
 
     ib_ivec2 cpos, csize;
     ib_graphics_get_camera(&cpos, &csize);
@@ -125,8 +123,6 @@ int obj_snow_evt(ib_event* e, void* ed) {
         }
         break;
     }
-
-    return 0;
 }
 
 void obj_snow_destroy(ib_object* p) {

@@ -22,24 +22,23 @@
 
 typedef struct {
     ib_sprite* spr;
-    int subd, subu, subi;
     int in_blink, in_blink_cd;
 
     ib_ivec2 base_pos, base_size; /* temporary base positions */
     int collision_result; /* intermediate to store collision results */
 } obj_player;
 
-static int obj_player_evt(ib_event* e, void* d);
 static int obj_player_collide_cb(ib_object* nc, void* d);
 
 /* init */
 void obj_player_init(ib_object* p) {
     obj_player* self = p->d = ib_malloc(sizeof *self);
 
+    ib_object_subscribe(p, IB_EVT_DRAW);
+    ib_object_subscribe(p, IB_EVT_UPDATE);
+    ib_object_subscribe(p, IB_EVT_INPUT);
+
     self->spr = ib_sprite_alloc(OBJ_PLAYER_TEXTURE, 32, 32, 0);
-    self->subd = ib_event_subscribe(IB_EVT_DRAW, obj_player_evt, p);
-    self->subu = ib_event_subscribe(IB_EVT_UPDATE, obj_player_evt, p);
-    self->subi = ib_event_subscribe(IB_EVT_INPUT, obj_player_evt, p);
     self->in_blink = 0;
     self->in_blink_cd = 0;
 
@@ -51,8 +50,7 @@ void obj_player_init(ib_object* p) {
 }
 
 /* Event handling */
-int obj_player_evt(ib_event* e, void* d) {
-    ib_object* obj = d;
+void obj_player_evt(ib_event* e, ib_object* obj) {
     obj_player* self = obj->d;
 
     ib_ivec2 cpos, csize;
@@ -110,7 +108,7 @@ int obj_player_evt(ib_event* e, void* d) {
         if (!self->in_blink && !ib_world_aabb(self->base_pos, self->base_size)) {
             ib_world_destroy_object(obj); // lol
             //TODO: Death Sequence
-            return 0;
+            return;
         }
 
         /* update camera position */
@@ -145,18 +143,12 @@ int obj_player_evt(ib_event* e, void* d) {
     }
     break;
     }
-
-    return 0;
 }
 
 /* Destroy func */
 void obj_player_destroy(ib_object* p) {
     obj_player* self = p->d;
     ib_sprite_free(self->spr);
-
-    ib_event_unsubscribe(self->subd);
-    ib_event_unsubscribe(self->subu);
-    ib_event_unsubscribe(self->subi);
 
     ib_free(self);
 }

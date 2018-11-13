@@ -5,5 +5,6 @@
 
 void obj_snow_init(ib_object* p);
 void obj_snow_destroy(ib_object* p);
+void obj_snow_evt(ib_event* e, ib_object* p);
 
 #endif

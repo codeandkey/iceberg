@@ -25,10 +25,7 @@ typedef struct {
     ib_sprite* spr;
     obj_explosion_spark sparks[OBJ_EXPLOSION_SPARKS_MAX];
     int num_sparks;
-    int subu, subd;
 } obj_explosion;
-
-static int obj_explosion_evt(ib_event* e, void* d);
 
 void obj_explosion_init(ib_object* p) {
     obj_explosion* self = p->d = ib_malloc(sizeof *self);
@@ -38,8 +35,8 @@ void obj_explosion_init(ib_object* p) {
     ib_sprite_oneshot(self->spr, 1);
     ib_sprite_start(self->spr);
 
-    self->subu = ib_event_subscribe(IB_EVT_UPDATE, obj_explosion_evt, p);
-    self->subd = ib_event_subscribe(IB_EVT_DRAW, obj_explosion_evt, p);
+    ib_object_subscribe(p, IB_EVT_UPDATE);
+    ib_object_subscribe(p, IB_EVT_DRAW);
 
     self->num_sparks = rand() % (OBJ_EXPLOSION_SPARKS_MAX - OBJ_EXPLOSION_SPARKS_MIN) + OBJ_EXPLOSION_SPARKS_MIN;
 
@@ -58,8 +55,7 @@ void obj_explosion_init(ib_object* p) {
     /* in the future, this event could be replaced with an "area damage" event to make things more concise and reusable */
 }
 
-int obj_explosion_evt(ib_event* e, void* d) {
-    ib_object* obj = d;
+void obj_explosion_evt(ib_event* e, ib_object* obj) {
     obj_explosion* self = obj->d;
     int should_die;
 
@@ -78,7 +74,7 @@ int obj_explosion_evt(ib_event* e, void* d) {
         }
         if (!self->spr->playing && should_die) { /* after the oneshot is over destroy the explosion object */
             ib_world_destroy_object(obj);
-            return 0;
+            return;
         }
         break;
     case IB_EVT_DRAW:
@@ -113,15 +109,10 @@ int obj_explosion_evt(ib_event* e, void* d) {
     }
     break;
     }
-
-    return 0;
 }
 
 void obj_explosion_destroy(ib_object* p) {
     obj_explosion* self = p->d;
 
     ib_sprite_free(self->spr);
-
-    ib_event_unsubscribe(self->subu);
-    ib_event_unsubscribe(self->subd);
 }

@@ -5,5 +5,6 @@
 
 void obj_player_init(ib_object* p);
 void obj_player_destroy(ib_object* p);
+void obj_player_evt(ib_event* e, ib_object* p);
 
 #endif

@@ -19,15 +19,7 @@
 typedef struct {
     ib_texture* tex; /* store the texture for our object */
     int example_user_value; /* store 1 integer which we'll read in from a parameter */
-    int draw_subscription; /* store a reference to our "draw event" so we can unsubscribe when we are done */
 } obj_example;
-
-/*
- * define an event handler for the object
- * because object types don't care at all about events/etc the function can exist entirely within this file
- */
-
-static int obj_example_evt(ib_event* e, void* d); /* this function is called with an event and whatever data we pass when we subscribe */
 
 /*
  * implement the init function
@@ -50,8 +42,7 @@ void obj_example_init(ib_object* p) {
     self->tex = ib_graphics_get_texture(IB_GRAPHICS_ERROR_TEX);
 
     /* bind a draw event so we can respond to them */
-    /* here we pass `p` as the last argument -- so whenever obj_example_evt is called `p` will be passed to it (which is an ib_object* to ourself) */
-    self->draw_subscription = ib_event_subscribe(IB_EVT_DRAW, obj_example_evt, p);
+    ib_object_subscribe(p, IB_EVT_DRAW);
 }
 
 /*
@@ -66,9 +57,6 @@ void obj_example_destroy(ib_object* p) {
     /* free the texture we used */
     ib_graphics_drop_texture(self->tex);
 
-    /* unsubscribe our draw event so it doesn't get called with an object that doesn't exist */
-    ib_event_unsubscribe(self->draw_subscription);
-
     /* finally, free the obj_example structure we allocated for the object */
     ib_free(self);
 }
@@ -78,11 +66,7 @@ void obj_example_destroy(ib_object* p) {
  * all of the object runtime logic is here, we change object state in response to events
  */
 
-int obj_example_evt(ib_event* e, void* d) {
-    /* remember we passed the (ib_object* p) when we subscribed to the draw event.
-     * so we can retrieve our obj_example structure from inside. */
-
-    ib_object* obj = d; /* cast the pointer so we can access the members */
+void obj_example_evt(ib_event* e, ib_object* obj) {
     obj_example* self = obj->d; /* retrieve obj_example* from the data field */
 
     /* now we can handle the events.
@@ -101,7 +85,4 @@ int obj_example_evt(ib_event* e, void* d) {
         ib_graphics_tex_draw_ex(self->tex, obj->pos, obj->size);
         break;
     }
-
-    /* event handlers are required to return an int but as of now they are unused */
-    return 0;
 }

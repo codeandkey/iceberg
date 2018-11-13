@@ -15,8 +15,6 @@ typedef struct {
     int sub_draw;
 } obj_bg;
 
-static int obj_bg_evt(ib_event* e, void* d);
-
 void obj_bg_init(ib_object* p) {
     obj_bg* self = p->d = ib_malloc(sizeof *self);
 
@@ -24,11 +22,11 @@ void obj_bg_init(ib_object* p) {
     self->img = ib_graphics_get_texture(imgpath);
 
     /* object resources / parameters ready, bind ourself to draw */
-    self->sub_draw = ib_event_subscribe(IB_EVT_DRAW_BACKGROUND, obj_bg_evt, self);
+    ib_object_subscribe(p, IB_EVT_DRAW_BACKGROUND);
 }
 
-int obj_bg_evt(ib_event* e, void* d) {
-    obj_bg* self = (obj_bg*) d;
+void obj_bg_evt(ib_event* e, ib_object* obj) {
+    obj_bg* self = obj->d;
 
     ib_ivec2 cpos, csize;
 
@@ -39,13 +37,10 @@ int obj_bg_evt(ib_event* e, void* d) {
         ib_graphics_tex_draw_ex(self->img, cpos, csize);
         break;
     }
-
-    return 0;
 }
 
 void obj_bg_destroy(ib_object* p) {
     obj_bg* self = (obj_bg*) p->d;
     ib_graphics_drop_texture(self->img);
-    ib_event_unsubscribe(self->sub_draw);
     ib_free(self);
 }

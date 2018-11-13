@@ -1,7 +1,6 @@
 #include "world.h"
 #include "log.h"
 #include "mem.h"
-#include "event.h"
 #include "graphics/graphics.h"
 
 #include <libxml/parser.h>
@@ -62,6 +61,7 @@ static void _ib_world_free_props(const char* k, void* v);
 static void _ib_world_unload(void);
 static int _ib_world_draw_callback(ib_event* e, void* d);
 static ib_texture* _ib_world_get_tex_basename(char* full_path); /* try and find a texture by the basename */
+static int _ib_world_obj_evt_handler(ib_event* e, void* d); /* generic event handler for object interface */
 
 int ib_world_init() {
     if (_ib_world_state.initialized) return ib_warn("already initialized");
@@ -579,7 +579,7 @@ void ib_world_object_foreach_by_type(const char* type, int (*cb)(ib_object* p, v
     }
 }
 
-void ib_world_bind_object(const char* type, ib_object_fn init, ib_object_fn destroy) {
+void ib_world_bind_object(const char* type, ib_object_fn init, ib_object_fn destroy, ib_object_evt_fn evt) {
     ib_object_type* t = ib_hashmap_get(_ib_world_state.obj_type_map, type);
 
     if (t) {
@@ -592,6 +592,7 @@ void ib_world_bind_object(const char* type, ib_object_fn init, ib_object_fn dest
     t->name = strdup(type);
     t->init = init;
     t->destroy = destroy;
+    t->evt = evt;
 
     ib_hashmap_set(_ib_world_state.obj_type_map, type, t);
     ib_ok("bound object type %s", type);
@@ -619,6 +620,7 @@ ib_object* ib_world_create_object(const char* type, const char* name, ib_hashmap
     obj->angle = rot;
     obj->visible = visible;
     obj->prev = NULL;
+    obj->sub_count = 0;
 
     /* insert at head of doubly linked list */
     obj->next = _ib_world_state.objects;
@@ -630,6 +632,10 @@ ib_object* ib_world_create_object(const char* type, const char* name, ib_hashmap
 }
 
 void ib_world_destroy_object(ib_object* obj) {
+    for (int i = 0; i < obj->sub_count; ++i) {
+        ib_event_unsubscribe(obj->subs[i]);
+    }
+
     obj->t->destroy(obj);
 
     if (obj->next) {
@@ -690,6 +696,10 @@ char* ib_object_get_prop_str(ib_object* p, const char* key, char* def) {
     return prop;
 }
 
+void ib_object_subscribe(ib_object* p, int evt) {
+    p->subs[p->sub_count++] = ib_event_subscribe(evt, _ib_world_obj_evt_handler, p);
+}
+
 static ib_texture* _ib_world_get_tex_basename(char* fp) {
     char* bn = basename(fp);
     char* full_path = ib_malloc(strlen(bn) + strlen(IB_TEXTURE_PREFIX) + 1);
@@ -703,4 +713,10 @@ static ib_texture* _ib_world_get_tex_basename(char* fp) {
     ib_free(full_path);
 
     return out;
+}
+
+int _ib_world_obj_evt_handler(ib_event* e, void* d) {
+    ib_object* p = d;
+    p->t->evt(e, p);
+    return 0;
 }

@@ -12,10 +12,7 @@ typedef struct {
     int delay;
     float angle;
     ib_timepoint timer;
-    int subd, subu;
 } obj_grenade;
-
-static int obj_grenade_evt(ib_event* e, void* d);
 
 void obj_grenade_init(ib_object* p) {
     obj_grenade* self = p->d = ib_malloc(sizeof *self);
@@ -30,12 +27,11 @@ void obj_grenade_init(ib_object* p) {
     self->timer = ib_timer_point();
     self->angle = 0.0f;
 
-    self->subd = ib_event_subscribe(IB_EVT_DRAW, obj_grenade_evt, p);
-    self->subu = ib_event_subscribe(IB_EVT_UPDATE, obj_grenade_evt, p);
+    ib_object_subscribe(p, IB_EVT_DRAW);
+    ib_object_subscribe(p, IB_EVT_UPDATE);
 }
 
-int obj_grenade_evt(ib_event* e, void* d) {
-    ib_object* obj = d;
+void obj_grenade_evt(ib_event* e, ib_object* obj) {
     obj_grenade* self = obj->d;
 
     switch (e->type) {
@@ -48,7 +44,7 @@ int obj_grenade_evt(ib_event* e, void* d) {
             /* should explode. destroy the grenade object */
             ib_world_create_object("explosion", NULL, NULL, obj->pos, obj->size, 0.0f, 1);
             ib_world_destroy_object(obj);
-            return 0;
+            return;
         }
         break;
     case IB_EVT_DRAW:
@@ -57,13 +53,9 @@ int obj_grenade_evt(ib_event* e, void* d) {
         ib_graphics_tex_draw_sprite(self->spr, obj->pos);
         break;
     }
-
-    return 0;
 }
 
 void obj_grenade_destroy(ib_object* p) {
     obj_grenade* self = p->d;
-    ib_event_unsubscribe(self->subu);
-    ib_event_unsubscribe(self->subd);
     ib_sprite_free(self->spr);
 }

@@ -13,10 +13,7 @@
 typedef struct {
     ib_texture* tex;
     float off;
-    int subu, subd;
 } obj_fog;
-
-static int _obj_fog_evt(ib_event* e, void* d);
 
 void obj_fog_init(ib_object* p) {
     obj_fog* self = p->d = ib_malloc(sizeof *self);
@@ -24,12 +21,11 @@ void obj_fog_init(ib_object* p) {
     self->tex = ib_graphics_get_texture(OBJ_FOG_TEXTURE);
     self->off = 0.0f;
 
-    self->subu = ib_event_subscribe(IB_EVT_UPDATE, _obj_fog_evt, p);
-    self->subd = ib_event_subscribe(IB_EVT_DRAW, _obj_fog_evt, p);
+    ib_object_subscribe(p, IB_EVT_UPDATE);
+    ib_object_subscribe(p, IB_EVT_DRAW);
 }
 
-int _obj_fog_evt(ib_event* e, void* d) {
-    ib_object* obj = d;
+void obj_fog_evt(ib_event* e, ib_object* obj) {
     obj_fog* self = obj->d;
 
     ib_ivec2 cpos, csize;
@@ -75,15 +71,10 @@ int _obj_fog_evt(ib_event* e, void* d) {
 
         break;
     }
-
-    return 0;
 }
 
 void obj_fog_destroy(ib_object* p) {
     obj_fog* self = p->d;
-
-    ib_event_unsubscribe(self->subu);
-    ib_event_unsubscribe(self->subd);
 
     ib_graphics_drop_texture(self->tex);
     ib_free(self);

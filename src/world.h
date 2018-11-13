@@ -20,6 +20,7 @@
 
 
 #include "hashmap.h"
+#include "event.h"
 #include "graphics/graphics.h"
 
 /* in an ideal world we would have the world as an object itself
@@ -38,13 +39,17 @@
 #define IB_WORLD_LAYER_TILE 0
 #define IB_WORLD_LAYER_IMAGE 1
 
+#define IB_OBJECT_MAX_SUBS 8
+
 struct _ib_object;
 
 typedef void (*ib_object_fn)(struct _ib_object* p);
+typedef void (*ib_object_evt_fn)(ib_event* e, struct _ib_object* p);
 
 typedef struct {
     char* name; /* copied */
     ib_object_fn init, destroy;
+    ib_object_evt_fn evt;
 } ib_object_type;
 
 typedef struct _ib_object {
@@ -56,6 +61,7 @@ typedef struct _ib_object {
     ib_ivec2 pos, size; /* object don't really have to respect these at all, feel free to mutate */
     float angle; /* just properties loaded from the map */
     int visible;
+    int subs[IB_OBJECT_MAX_SUBS], sub_count;
 } ib_object;
 
 int ib_world_init();
@@ -76,7 +82,7 @@ int ib_world_col_point(ib_ivec2 pos);
 
 /* ib_world_create_object returns a handle to the object but in most cases you don't really need it */
 
-void ib_world_bind_object(const char* name, ib_object_fn init, ib_object_fn destroy);
+void ib_world_bind_object(const char* name, ib_object_fn init, ib_object_fn destroy, ib_object_evt_fn evt);
 ib_object* ib_world_create_object(const char* type, const char* name, ib_hashmap* props, ib_ivec2 pos, ib_ivec2 size, float angle, int visible);
 void ib_world_destroy_object(ib_object* p);
 void ib_world_destroy_all();
@@ -86,5 +92,8 @@ void ib_world_object_foreach_by_type(const char* type, int (*cb)(ib_object* p, v
 int ib_object_get_prop_int(ib_object* p, const char* key, int def);
 double ib_object_get_prop_scalar(ib_object* p, const char* key, double def);
 char* ib_object_get_prop_str(ib_object* p, const char* key, char* def);
+
+/* helper to auto subscribe/unsubscribe an object from events */
+void ib_object_subscribe(ib_object* p, int evt);
 
 #endif

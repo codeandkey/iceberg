@@ -16,6 +16,7 @@
 /* function declarations for init() and destroy() */
 void obj_example_init(ib_object* p);
 void obj_example_destroy(ib_object* p);
+void obj_example_evt(ib_event* e, ib_object* p);
 
 /* end include guard*/
 #endif

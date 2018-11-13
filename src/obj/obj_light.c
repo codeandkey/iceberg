@@ -14,10 +14,8 @@
 typedef struct {
     ib_texture* tex;
     float alpha;
-    int next_flicker, subd, subu;
+    int next_flicker;
 } obj_light;
-
-static int obj_light_evt(ib_event* e, void* d);
 
 void obj_light_init(ib_object* p) {
     obj_light* self = p->d = ib_malloc(sizeof *self);
@@ -26,12 +24,11 @@ void obj_light_init(ib_object* p) {
 
     self->tex = ib_graphics_get_texture(OBJ_LIGHT_TEX);
 
-    self->subd = ib_event_subscribe(IB_EVT_DRAW_WORLD_LIGHTS, obj_light_evt, p);
-    self->subu = ib_event_subscribe(IB_EVT_UPDATE, obj_light_evt, p);
+    ib_object_subscribe(p, IB_EVT_DRAW_WORLD_LIGHTS);
+    ib_object_subscribe(p, IB_EVT_UPDATE);
 }
 
-int obj_light_evt(ib_event* e, void* d) {
-    ib_object* obj = d;
+void obj_light_evt(ib_event* e, ib_object* obj) {
     obj_light* self = obj->d;
 
     switch (e->type) {
@@ -51,15 +48,10 @@ int obj_light_evt(ib_event* e, void* d) {
         ib_graphics_tex_draw_ex(self->tex, obj->pos, obj->size);
         break;
     }
-
-    return 0;
 }
 
 void obj_light_destroy(ib_object* p) {
     obj_light* self = p->d;
-
-    ib_event_unsubscribe(self->subd);
-    ib_event_unsubscribe(self->subu);
 
     ib_graphics_drop_texture(self->tex);
     ib_free(self);

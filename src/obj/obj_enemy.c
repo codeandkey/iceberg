@@ -10,12 +10,9 @@
 typedef struct {
     ib_sprite* spr;
     int aitype; /* TODO: Implement multiple variants of AI (ideally passive/aggressive/defensive) */
-    int subd, subu;
     ib_ivec2 base_pos, base_size;
     int collision_result; /* enemys need collision too right? #equalopportunity */
 } obj_enemy;
-
-static int obj_enemy_evt(ib_event* e, void* d);
 
 /* init */
 void obj_enemy_init(ib_object* p) {
@@ -23,8 +20,9 @@ void obj_enemy_init(ib_object* p) {
 
     self->aitype = ib_object_get_prop_int(p, "enemyai_type", 0);
     self->spr = ib_sprite_alloc(OBJ_ENEMY_TEX, 32, 32, 0);
-    self->subd = ib_event_subscribe(IB_EVT_DRAW, obj_enemy_evt, p);
-    self->subu = ib_event_subscribe(IB_EVT_UPDATE, obj_enemy_evt, p);
+
+    ib_object_subscribe(p, IB_EVT_DRAW);
+    ib_object_subscribe(p, IB_EVT_UPDATE);
 
     ib_ok("initialized obj_enemy with enemeyai_type=%d", self->aitype);
 }
@@ -34,15 +32,11 @@ void obj_enemy_destroy(ib_object* p) {
     obj_enemy* self = p->d;
 
     ib_sprite_free(self->spr);
-    ib_event_unsubscribe(self->subd);
-    ib_event_unsubscribe(self->subu);
-
     ib_free(self);
 }
 
 /* Event handling */
-int obj_enemy_evt(ib_event* e, void* d) {
-    ib_object* obj = d;
+void obj_enemy_evt(ib_event* e, ib_object* obj) {
     obj_enemy* self = obj->d;
 
     switch(e->type) {
@@ -54,6 +48,4 @@ int obj_enemy_evt(ib_event* e, void* d) {
         ib_graphics_tex_draw_sprite(self->spr, obj->pos);
         break;
     }
-
-    return 0;
 }
