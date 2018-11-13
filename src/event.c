@@ -8,7 +8,7 @@
 typedef struct _ib_event_sub {
     ib_event_cb cb;
     void* data;
-    int id;
+    int id, killme;
     struct _ib_event_sub* next;
 } ib_event_sub;
 
@@ -45,6 +45,7 @@ int ib_event_subscribe(int type, ib_event_cb cb, void* d) {
     s->data = d;
     s->id = _ib_event_id++;
     s->next = _ib_event_subs[type];
+    s->killme = 0;
 
     _ib_event_subs[type] = s;
     return s->id;
@@ -52,21 +53,14 @@ int ib_event_subscribe(int type, ib_event_cb cb, void* d) {
 
 int ib_event_unsubscribe(int id) {
     for (int i = 0; i < IB_EVENT_MAX; ++i) {
-        ib_event_sub* cur = _ib_event_subs[i], *prev = NULL;
+        ib_event_sub* cur = _ib_event_subs[i];
 
         while (cur) {
             if (cur->id == id) {
-                if (prev) {
-                    prev->next = cur->next;
-                } else {
-                    _ib_event_subs[i] = cur->next;
-                }
-
-                ib_free(cur);
+                cur->killme = 1;
                 return 0;
             }
 
-            prev = cur;
             cur = cur->next;
         }
     }
@@ -75,12 +69,25 @@ int ib_event_unsubscribe(int id) {
 }
 
 void ib_event_send(ib_event* e) {
-    ib_event_sub* cur = _ib_event_subs[e->type], *tmp;
+    ib_event_sub* cur = _ib_event_subs[e->type], *tmp, *prev = NULL;
 
     while (cur) {
-        tmp = cur->next;
-        cur->cb(e, cur->data); /* cur could be destroyed mid event so we store a tmp */
-        cur = tmp;
+        if (cur->killme) {
+            /* should unsubscribe now */
+            if (prev) {
+                prev->next = cur->next;
+            } else {
+                _ib_event_subs[e->type] = cur->next;
+            }
+
+            tmp = cur->next;
+            ib_free(cur);
+            cur = tmp;
+        } else {
+            cur->cb(e, cur->data);
+            prev = cur;
+            cur = cur->next;
+        }
     }
 }
 

@@ -1,6 +1,6 @@
 #include "obj_snow.h"
 
-#include "../graphics.h"
+#include "../graphics/graphics.h"
 #include "../event.h"
 #include "../mem.h"
 
@@ -23,7 +23,7 @@ typedef struct {
 } obj_snow_flake;
 
 typedef struct {
-    ib_graphics_texture* flakes[3];
+    ib_texture* flakes[3];
     obj_snow_flake parts[OBJ_SNOW_NUM_PARTS];
 } obj_snow;
 
@@ -32,24 +32,23 @@ static int obj_snow_evt(ib_event* e, void* d);
 void obj_snow_init(ib_object* p) {
     obj_snow* d = p->d = ib_malloc(sizeof *d);
 
-    d->flakes[0] = ib_graphics_get_texture(IB_GRAPHICS_TEXFILE("snowflake1"));
-    d->flakes[1] = ib_graphics_get_texture(IB_GRAPHICS_TEXFILE("snowflake2"));
-    d->flakes[2] = ib_graphics_get_texture(IB_GRAPHICS_TEXFILE("snowflake3"));
+    d->flakes[0] = ib_graphics_get_texture(IB_TEXTURE_FILE("snowflake1"));
+    d->flakes[1] = ib_graphics_get_texture(IB_TEXTURE_FILE("snowflake2"));
+    d->flakes[2] = ib_graphics_get_texture(IB_TEXTURE_FILE("snowflake3"));
 
-    int cx, cy, cw, ch;
-    ib_graphics_get_camera(&cx, &cy);
-    ib_graphics_get_size(&cw, &ch);
+    ib_ivec2 cpos, csize;
+    ib_graphics_get_camera(&cpos, &csize);
 
     for (int i = 0; i < OBJ_SNOW_NUM_PARTS; ++i) {
-        d->parts[i].x = rand() % cw + cx;
-        d->parts[i].y = rand() % ch + cy;
+        d->parts[i].x = rand() % csize.x + cpos.x;
+        d->parts[i].y = rand() % csize.y + cpos.y;
         d->parts[i].type = rand() % 3;
         d->parts[i].dx = (rand() % 10) * 2.0f / 9.0f - 1.0f;
         d->parts[i].dy = (rand() % 10) / 9.0f + 1.0f;
         d->parts[i].rot = ((rand() % 100) / 99.0f) * 3.141f * 2.0f;
-        d->parts[i].drot = ((rand() % 100) / 99.0f) * 2.0f - 1.0f;
+        d->parts[i].drot = ((rand() % 100) / 99.0f) * 0.2f - 0.1f;
         d->parts[i].alpha = (rand() % 100) / 140.0f;
-        d->parts[i].y_drop = cy + (rand() % ch);
+        d->parts[i].y_drop = csize.y + (rand() % csize.y);
         d->parts[i].dropped = 0;
         d->parts[i].still = 0;
     }
@@ -61,9 +60,8 @@ void obj_snow_init(ib_object* p) {
 int obj_snow_evt(ib_event* e, void* ed) {
     obj_snow* d = ed;
 
-    int cx, cy, vpw, vph;
-    ib_graphics_get_camera(&cx, &cy);
-    ib_graphics_get_size(&vpw, &vph);
+    ib_ivec2 cpos, csize;
+    ib_graphics_get_camera(&cpos, &csize);
 
     switch (e->type) {
     case IB_EVT_UPDATE:
@@ -73,9 +71,9 @@ int obj_snow_evt(ib_event* e, void* ed) {
                 if (!--d->parts[i].still) {
                     /* reset dropped particle */
                     d->parts[i].y = -10;
-                    d->parts[i].y_drop = cy + rand() % (vph * 3 / 2);
+                    d->parts[i].y_drop = cpos.y + rand() % (csize.y * 3 / 2);
                     d->parts[i].dropped = 0;
-                    d->parts[i].x = rand() % vpw;
+                    d->parts[i].x = rand() % csize.x;
                 }
                 continue;
             }
@@ -84,11 +82,11 @@ int obj_snow_evt(ib_event* e, void* ed) {
             d->parts[i].y += d->parts[i].dy;
             d->parts[i].rot += d->parts[i].drot;
 
-            if (d->parts[i].x + d->flakes[d->parts[i].type]->size.x < cx) d->parts[i].x += vpw;
-            if (d->parts[i].x > cx + vpw) d->parts[i].x -= vpw;
+            if (d->parts[i].x + d->flakes[d->parts[i].type]->size.x < cpos.x) d->parts[i].x += csize.x;
+            if (d->parts[i].x > cpos.x + csize.x) d->parts[i].x -= csize.x;
 
             if ((d->parts[i].y > d->parts[i].y_drop) && !d->parts[i].dropped) {
-                ib_graphics_point p;
+                ib_ivec2 p;
                 p.x = d->parts[i].x;
                 p.y = d->parts[i].y;
                 d->parts[i].dropped = 1;
@@ -98,27 +96,32 @@ int obj_snow_evt(ib_event* e, void* ed) {
                 }
             }
 
-            if (d->parts[i].y > cy + vph) {
-                d->parts[i].y = cy - 10;
-                d->parts[i].x = cx + rand() % vpw;
-                d->parts[i].y_drop = cy + rand() % (vph * 3 / 2);
+            if (d->parts[i].y > cpos.y + csize.y) {
+                d->parts[i].y = cpos.y - 10;
+                d->parts[i].x = cpos.x + rand() % csize.x;
+                d->parts[i].y_drop = cpos.y + rand() % (csize.y * 3 / 2);
                 d->parts[i].dropped = 0;
             }
         }
     }
     break;
     case IB_EVT_DRAW:
-        ib_graphics_set_space(IB_GRAPHICS_WORLDSPACE);
+        ib_graphics_opt_reset();
 
         for (int i = 0; i < OBJ_SNOW_NUM_PARTS; ++i) {
-            ib_graphics_point pos;
+            ib_ivec2 pos;
 
             pos.x = d->parts[i].x;
             pos.y = d->parts[i].y;
 
-            ib_graphics_texture* t = d->flakes[d->parts[i].type];
+            ib_texture* t = d->flakes[d->parts[i].type];
+
             float alp = d->parts[i].still ? d->parts[i].alpha * (float) d->parts[i].still / (float) d->parts[i].dropped : d->parts[i].alpha;
-            ib_graphics_draw_texture_ex(t, pos, t->size, d->parts[i].rot, 0, 0, alp);
+
+            ib_graphics_opt_alpha(alp);
+            ib_graphics_opt_rot(d->parts[i].rot);
+
+            ib_graphics_tex_draw_ex(t, pos, t->size);
         }
         break;
     }

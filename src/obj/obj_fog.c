@@ -1,73 +1,79 @@
 #include "obj_fog.h"
 
-#include "../graphics.h"
-#include "../event.h"
+#include "../graphics/graphics.h"
 #include "../mem.h"
+#include "../event.h"
+#include "../log.h"
 
-#define OBJ_FOG_IMAGE IB_GRAPHICS_TEXFILE("mist")
-#define OBJ_FOG_DEPTH 3
-#define OBJ_FOG_SPEED 1.0 /* speed of the highest parallax depth, back layers will be slower */
+#define OBJ_FOG_TEXTURE IB_TEXTURE_FILE("mist")
+#define OBJ_FOG_SPEED 10
+#define OBJ_FOG_LAYERS 3
+#define OBJ_FOG_PARALLAX_OFFSET 2 /* divisor of the topmost layer */
 
 typedef struct {
-    ib_graphics_texture* tex;
+    ib_texture* tex;
+    float off;
     int subu, subd;
-    double scroll; /* constant scroll */
 } obj_fog;
 
-static int obj_fog_evt(ib_event* e, void* d);
+static int _obj_fog_evt(ib_event* e, void* d);
 
 void obj_fog_init(ib_object* p) {
     obj_fog* self = p->d = ib_malloc(sizeof *self);
 
-    self->tex = ib_graphics_get_texture(OBJ_FOG_IMAGE);
+    self->tex = ib_graphics_get_texture(OBJ_FOG_TEXTURE);
+    self->off = 0.0f;
 
-    self->subu = ib_event_subscribe(IB_EVT_UPDATE, obj_fog_evt, self);
-    self->subd = ib_event_subscribe(IB_EVT_DRAW_BACKGROUND_POST, obj_fog_evt, self);
+    self->subu = ib_event_subscribe(IB_EVT_UPDATE, _obj_fog_evt, p);
+    self->subd = ib_event_subscribe(IB_EVT_DRAW, _obj_fog_evt, p);
 }
 
-int obj_fog_evt(ib_event* e, void* d) {
-    obj_fog* self = d;
+int _obj_fog_evt(ib_event* e, void* d) {
+    ib_object* obj = d;
+    obj_fog* self = obj->d;
 
-    int cx, cy, cw, ch;
-    ib_graphics_get_camera(&cx, &cy);
-    ib_graphics_get_size(&cw, &ch);
+    ib_ivec2 cpos, csize;
 
     switch (e->type) {
-    case IB_EVT_DRAW_BACKGROUND_POST:
-        /* movie magic here. treat each depth as a different parallax level relative to the camera */
-        /* render parallax levels from back to front */
-        /* we can fake a worldspace parallax by rendering in screenspace mod vpw which is a massive hack it's great */
+    case IB_EVT_UPDATE:
+        self->off += OBJ_FOG_SPEED;
+        break;
+    case IB_EVT_DRAW:
+        /* tricky render here, we want to tile the fog texture and still maintain multiple parallax levels */
+        /* first compute the parallax offset (mod cwidth) for each layer */
 
-        ib_graphics_set_space(IB_GRAPHICS_SCREENSPACE);
-        ib_graphics_point pos;
+        ib_graphics_get_camera(&cpos, &csize);
+        ib_graphics_opt_reset();
 
-        /* when rendering scale the fog image vertically to fill the screen */
-        /* do a smart scale and match the aspect ratio */
-        ib_graphics_point size = self->tex->size;
-        size.y = ch;
-        size.x = cw;
+        for (int i = 0; i < OBJ_FOG_LAYERS; ++i) {
+            int cline = ((float) cpos.x + self->off) / (float) (OBJ_FOG_PARALLAX_OFFSET + i);
 
-        pos.y = 0;
+            /* mod spaces would not work well for this, do a quick loop */
+            while (cline < cpos.x) cline += csize.x;
+            while (cline >= cpos.x + csize.x) cline -= csize.x;
 
-        for (int level = OBJ_FOG_DEPTH - 1; level >= 0; --level) {
-            int pos_absolute = ((int) ((self->scroll - cx) / (double) (level + 1))) % cw;
-            if (pos_absolute < 0) pos_absolute += cw; /* get the position between 0 and cw */
+            ib_graphics_opt_alpha(1.0f / OBJ_FOG_LAYERS);
 
-            /* render a fog image on each side of the divider line to ensure it covers the screen */
-            pos.x = pos_absolute;
-            ib_graphics_draw_texture_size(self->tex, pos, size);
+            /* render one to the left, one to the right at camera dimensions */
+            ib_ivec2 clpos = cpos;
+            clpos.x = cline;
+            ib_graphics_tex_draw_ex(self->tex, clpos, csize);
 
-            pos.x -= size.x;
-            ib_graphics_draw_texture_size(self->tex, pos, size);
+            clpos.x -= csize.x;
+            ib_graphics_tex_draw_ex(self->tex, clpos, csize);
+
+            ib_graphics_opt_alpha(1.0f);
+
+            ib_ivec2 a, b;
+            a.x = cline;
+            a.y = cpos.y;
+            b.x = cline;
+            b.y = cpos.y + csize.y;
+
+            ib_graphics_prim_line(a, b);
         }
 
-        ib_graphics_set_space(IB_GRAPHICS_WORLDSPACE);
         break;
-    case IB_EVT_UPDATE:
-    {
-        self->scroll += OBJ_FOG_SPEED;
-    }
-    break;
     }
 
     return 0;
@@ -75,7 +81,10 @@ int obj_fog_evt(ib_event* e, void* d) {
 
 void obj_fog_destroy(ib_object* p) {
     obj_fog* self = p->d;
+
     ib_event_unsubscribe(self->subu);
     ib_event_unsubscribe(self->subd);
+
     ib_graphics_drop_texture(self->tex);
+    ib_free(self);
 }

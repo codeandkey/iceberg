@@ -2,6 +2,7 @@
 #include "log.h"
 #include "mem.h"
 #include "event.h"
+#include "graphics/graphics.h"
 
 #include <libxml/parser.h>
 #include <libxml/tree.h>
@@ -20,7 +21,7 @@ typedef struct {
 
 typedef struct {
     ib_world_tile_frame* frames[IB_WORLD_MAX_TILE_FRAMES];
-    ib_graphics_texture* tex;
+    ib_texture* tex;
     int dt_counter; /* local tracker for elapsed time mod frame duration */
     int is_animated, frame_count, cur_frame;
 } ib_world_tile;
@@ -33,7 +34,7 @@ typedef struct {
 typedef struct {
     int visible;
     float alpha;
-    ib_graphics_texture* tex;
+    ib_texture* tex;
 } ib_world_image_layer;
 
 typedef struct {
@@ -60,7 +61,7 @@ static void _ib_world_free_types(const char* k, void* v);
 static void _ib_world_free_props(const char* k, void* v);
 static void _ib_world_unload(void);
 static int _ib_world_draw_callback(ib_event* e, void* d);
-static ib_graphics_texture* _ib_world_get_tex_basename(char* full_path); /* try and find a texture by the basename */
+static ib_texture* _ib_world_get_tex_basename(char* full_path); /* try and find a texture by the basename */
 
 int ib_world_init() {
     if (_ib_world_state.initialized) return ib_warn("already initialized");
@@ -144,7 +145,7 @@ int ib_world_load(const char* path) {
     return ib_ok("loaded %s", path);
 }
 
-int ib_world_aabb(ib_graphics_point pos, ib_graphics_point size) {
+int ib_world_aabb(ib_ivec2 pos, ib_ivec2 size) {
     if (ib_world_col_point(pos)) return 1;
     pos.x += size.x;
     if (ib_world_col_point(pos)) return 1;
@@ -154,7 +155,7 @@ int ib_world_aabb(ib_graphics_point pos, ib_graphics_point size) {
     return ib_world_col_point(pos);
 }
 
-int ib_world_contains(ib_graphics_point pos, ib_graphics_point size) {
+int ib_world_contains(ib_ivec2 pos, ib_ivec2 size) {
     if (!ib_world_col_point(pos)) return 0;
     pos.x += size.x;
     if (!ib_world_col_point(pos)) return 0;
@@ -164,7 +165,7 @@ int ib_world_contains(ib_graphics_point pos, ib_graphics_point size) {
     return ib_world_col_point(pos);
 }
 
-int ib_world_col_point(ib_graphics_point p) {
+int ib_world_col_point(ib_ivec2 p) {
     if (p.x < 0) return 0;
     if (p.y < 0) return 0;
     if (p.x > _ib_world_state.twidth * _ib_world_state.ground_layer->tile.width) return 0;
@@ -208,7 +209,7 @@ int _ib_world_load_objlayer(xmlNode* n) {
             }
         }
 
-        ib_graphics_point pos, size;
+        ib_ivec2 pos, size;
         pos.x = strtol(prop_x, NULL, 10);
         pos.y = strtol(prop_y, NULL, 10);
         size.x = strtol(prop_width, NULL, 10);
@@ -504,9 +505,9 @@ int _ib_world_draw_callback(ib_event* e, void* d) {
 
 void ib_world_render_layer(int layer) {
     ib_world_layer* src = _ib_world_state.layers[layer];
-    ib_graphics_point pos;
+    ib_ivec2 pos;
 
-    ib_graphics_set_space(IB_GRAPHICS_WORLDSPACE);
+    ib_graphics_opt_reset();
 
     if (!src) return;
 
@@ -521,19 +522,20 @@ void ib_world_render_layer(int layer) {
                 pos.x = xi * _ib_world_state.twidth + src->offsetx;
 
                 if (t->is_animated) {
-                    ib_graphics_draw_texture(_ib_world_state.tiles[t->frames[t->cur_frame]->tid]->tex, pos);
+                    ib_texture* tex = _ib_world_state.tiles[t->frames[t->cur_frame]->tid]->tex;
+                    ib_graphics_tex_draw_ex(tex, pos, tex->size);
                 } else {
-                    ib_graphics_draw_texture(t->tex, pos);
+                    ib_graphics_tex_draw_ex(t->tex, pos, t->tex->size);
                 }
             }
         }
     }
 
     if (src->type == IB_WORLD_LAYER_IMAGE) {
-        ib_graphics_point pos;
+        ib_ivec2 pos;
         pos.x = src->offsetx;
         pos.y = src->offsety;
-        ib_graphics_draw_texture(src->img.tex, pos);
+        ib_graphics_tex_draw_ex(src->img.tex, pos, src->img.tex->size);
     }
 }
 
@@ -595,7 +597,7 @@ void ib_world_bind_object(const char* type, ib_object_fn init, ib_object_fn dest
     ib_ok("bound object type %s", type);
 }
 
-ib_object* ib_world_create_object(const char* type, const char* name, ib_hashmap* props, ib_graphics_point pos, ib_graphics_point size, float rot, int visible) {
+ib_object* ib_world_create_object(const char* type, const char* name, ib_hashmap* props, ib_ivec2 pos, ib_ivec2 size, float rot, int visible) {
     ib_object_type* t = ib_hashmap_get(_ib_world_state.obj_type_map, type);
 
     if (!t) {
@@ -688,16 +690,16 @@ char* ib_object_get_prop_str(ib_object* p, const char* key, char* def) {
     return prop;
 }
 
-static ib_graphics_texture* _ib_world_get_tex_basename(char* fp) {
+static ib_texture* _ib_world_get_tex_basename(char* fp) {
     char* bn = basename(fp);
-    char* full_path = ib_malloc(strlen(bn) + strlen(IB_GRAPHICS_TEX_PREFIX) + 1);
+    char* full_path = ib_malloc(strlen(bn) + strlen(IB_TEXTURE_PREFIX) + 1);
 
     /* looks unsafe but the buffer has an appropriate size */
     *full_path = 0;
-    strcat(full_path, IB_GRAPHICS_TEX_PREFIX);
+    strcat(full_path, IB_TEXTURE_PREFIX);
     strcat(full_path, bn);
 
-    ib_graphics_texture* out = ib_graphics_get_texture(full_path);
+    ib_texture* out = ib_graphics_get_texture(full_path);
     ib_free(full_path);
 
     return out;

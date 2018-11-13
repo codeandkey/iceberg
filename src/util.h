@@ -1,10 +1,10 @@
 #ifndef IB_UTIL
 #define IB_UTIL
 
-#include "graphics.h"
+#include "types.h"
 
 /* generic utils */
 
-int ib_util_col_aabb(ib_graphics_point apos, ib_graphics_point asize, ib_graphics_point bpos, ib_graphics_point bsize);
+int ib_util_col_aabb(ib_ivec2 apos, ib_ivec2 asize, ib_ivec2 bpos, ib_ivec2 bsize);
 
 #endif

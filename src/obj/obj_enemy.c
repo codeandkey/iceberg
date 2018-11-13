@@ -1,18 +1,17 @@
 #include "obj_enemy.h"
 
 #include "../event.h"
-#include "../graphics.h"
+#include "../graphics/graphics.h"
 #include "../log.h"
 #include "../mem.h"
-#include "../sprite.h"
 
-#define OBJ_ENEMY_TEX IB_GRAPHICS_TEXFILE("enemy")
+#define OBJ_ENEMY_TEX IB_TEXTURE_FILE("enemy")
 
 typedef struct {
     ib_sprite* spr;
     int aitype; /* TODO: Implement multiple variants of AI (ideally passive/aggressive/defensive) */
     int subd, subu;
-    ib_graphics_point base_pos, base_size;
+    ib_ivec2 base_pos, base_size;
     int collision_result; /* enemys need collision too right? #equalopportunity */
 } obj_enemy;
 
@@ -23,7 +22,7 @@ void obj_enemy_init(ib_object* p) {
     obj_enemy* self = p->d = ib_malloc(sizeof *self);
 
     self->aitype = ib_object_get_prop_int(p, "enemyai_type", 0);
-    self->spr = ib_sprite_alloc(OBJ_ENEMY_TEX);
+    self->spr = ib_sprite_alloc(OBJ_ENEMY_TEX, 32, 32, 0);
     self->subd = ib_event_subscribe(IB_EVT_DRAW, obj_enemy_evt, p);
     self->subu = ib_event_subscribe(IB_EVT_UPDATE, obj_enemy_evt, p);
 
@@ -51,8 +50,8 @@ int obj_enemy_evt(ib_event* e, void* d) {
         /* TODO: Enemy AI */
         break;
     case IB_EVT_DRAW:
-        ib_graphics_set_space(IB_GRAPHICS_WORLDSPACE);
-        ib_graphics_draw_sprite(self->spr, obj->pos);
+        ib_graphics_opt_reset();
+        ib_graphics_tex_draw_sprite(self->spr, obj->pos);
         break;
     }
 
