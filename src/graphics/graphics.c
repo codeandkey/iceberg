@@ -112,10 +112,12 @@ int ib_graphics_init() {
 
     /* initialize rect VAOs */
     ib_vert verts[6] = {
-        {{ -1.0f, -1.0f }, { 0.0f, 0.0f }},
-        {{ 1.0f, -1.0f }, { 1.0f, 0.0f }},
-        {{ 1.0f, 1.0f }, { 1.0f, 1.0f }},
-        {{ -1.0f, 1.0f }, { 0.0f, 1.0f }},
+        {{ -1.0f, 1.0f }, { 0.0f, 0.0f }},
+        {{ 1.0f, 1.0f }, { 1.0f, 0.0f }},
+        {{ 1.0f, -1.0f }, { 1.0f, 1.0f }},
+        {{ 1.0f, -1.0f }, { 1.0f, 1.0f }},
+        {{ -1.0f, 1.0f }, { 0.0f, 0.0f }},
+        {{ -1.0f, -1.0f }, { 0.0f, 1.0f }},
     };
 
     ib_glGenVertexArrays(1, &_ibg.vao_rect);
@@ -265,7 +267,7 @@ void ib_graphics_tex_draw(ib_texture* t) {
     ib_shader_bind(_ibg.shd_tex);
     ib_shader_sync_opts(_ibg.shd_tex, &_ibg.shader_opts, 0);
     ib_shader_set_camera(_ibg.shd_tex, *_ibg.mat_transform, 0);
-    ib_glDrawArrays(GL_TRIANGLE_FAN, 0, 4);
+    ib_glDrawArrays(GL_TRIANGLES, 0, 6);
 }
 
 void ib_graphics_tex_draw_ex(ib_texture* t, ib_ivec2 pos, ib_ivec2 size) {
@@ -283,7 +285,7 @@ void ib_graphics_tex_draw_sprite(ib_sprite* s, ib_ivec2 pos) {
     ib_shader_bind(_ibg.shd_tex);
     ib_shader_sync_opts(_ibg.shd_tex, &_ibg.shader_opts, 0);
     ib_shader_set_camera(_ibg.shd_tex, *_ibg.mat_transform, 0);
-    ib_glDrawArrays(GL_TRIANGLE_FAN, 4 * s->cur_frame, 4);
+    ib_glDrawArrays(GL_TRIANGLES, 6 * s->cur_frame, 6);
 }
 
 /*

@@ -9,7 +9,7 @@
 
 ib_texture* ib_texture_alloc(const char* path) {
     /* stb_image doesn't load in the right orientation for GL normally */
-    stbi_set_flip_vertically_on_load(0);
+    stbi_set_flip_vertically_on_load(1);
 
     int w, h;
     unsigned char* stbd = stbi_load(path, &w, &h, NULL, 4);

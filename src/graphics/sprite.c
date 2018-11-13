@@ -32,27 +32,35 @@ ib_sprite* ib_sprite_alloc(const char* path, int w, int h, unsigned int interval
     float tc_framewidth = tc_hpixel * w - tc_hpixel / 2.0f;
 
     /* we use vertex offsets into a VBO to render different frames. so we need to construct some weird looking vertex data */
-    ib_vert* verts = ib_malloc(4 * out->num_frames * sizeof *verts);
+    ib_vert* verts = ib_malloc(6 * out->num_frames * sizeof *verts);
 
     float tc_left = tc_hpixel / 2.0f;
     for (int i = 0; i < out->num_frames; ++i) {
-        verts[i*4].pos.x = -1.0f;
-        verts[i*4].pos.y = -1.0f;
-        verts[i*4+1].pos.x = 1.0f;
-        verts[i*4+1].pos.y = -1.0f;
-        verts[i*4+2].pos.x = 1.0f;
-        verts[i*4+2].pos.y = 1.0f;
-        verts[i*4+3].pos.x = -1.0f;
-        verts[i*4+3].pos.y = 1.0f;
+        verts[i*6].pos.x = -1.0f;
+        verts[i*6].pos.y = 1.0f;
+        verts[i*6+1].pos.x = 1.0f;
+        verts[i*6+1].pos.y = 1.0f;
+        verts[i*6+2].pos.x = 1.0f;
+        verts[i*6+2].pos.y = -1.0f;
+        verts[i*6+3].pos.x = -1.0f;
+        verts[i*6+3].pos.y = 1.0f;
+        verts[i*6+4].pos.x = 1.0f;
+        verts[i*6+4].pos.y = -1.0f;
+        verts[i*6+5].pos.x = -1.0f;
+        verts[i*6+5].pos.y = -1.0f;
 
-        verts[i*4].tc.x = tc_left;
-        verts[i*4].tc.y = 0.0f;
-        verts[i*4+1].tc.x = tc_left + tc_framewidth;
-        verts[i*4+1].tc.y = 0.0f;
-        verts[i*4+2].tc.x = tc_left + tc_framewidth;
-        verts[i*4+2].tc.y = 1.0f;
-        verts[i*4+3].tc.x = tc_left + tc_framewidth;
-        verts[i*4+3].tc.y = 1.0f;
+        verts[i*6].tc.x = tc_left;
+        verts[i*6].tc.y = 0.0f;
+        verts[i*6+1].tc.x = tc_left + tc_framewidth;
+        verts[i*6+1].tc.y = 0.0f;
+        verts[i*6+2].tc.x = tc_left + tc_framewidth;
+        verts[i*6+2].tc.y = 1.0f;
+        verts[i*6+3].tc.x = tc_left;
+        verts[i*6+3].tc.y = 0.0f;
+        verts[i*6+4].tc.x = tc_left + tc_framewidth;
+        verts[i*6+4].tc.y = 1.0f;
+        verts[i*6+5].tc.x = tc_left;
+        verts[i*6+5].tc.y = 1.0f;
 
         tc_left += tc_framewidth + tc_hpixel;
     }
@@ -63,9 +71,9 @@ ib_sprite* ib_sprite_alloc(const char* path, int w, int h, unsigned int interval
     ib_glGenBuffers(1, &out->vbo);
     ib_glBindBuffer(GL_ARRAY_BUFFER, out->vbo);
 
-    ib_glBufferData(GL_ARRAY_BUFFER, 4 * out->num_frames * sizeof *verts, verts, GL_STATIC_DRAW);
+    ib_glBufferData(GL_ARRAY_BUFFER, 6 * out->num_frames * sizeof *verts, verts, GL_STATIC_DRAW);
     ib_glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, sizeof *verts, NULL);
-    ib_glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, sizeof *verts, (void*) (sizeof(ib_vec2)));
+    ib_glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, sizeof *verts, (void*) (sizeof(float) * 2));
     ib_glEnableVertexAttribArray(0);
     ib_glEnableVertexAttribArray(1);
 
