@@ -4,7 +4,7 @@
 #include "../event.h"
 #include "../mem.h"
 
-#define OBJ_PLAYER_TRAIL_TEX IB_TEXTURE_FILE("trail")
+#define OBJ_PLAYER_TRAIL_TEX IB_TEXTURE_FILE("player")
 #define OBJ_PLAYER_TRAIL_ALPHA_DEC 0.2f
 
 typedef struct {
