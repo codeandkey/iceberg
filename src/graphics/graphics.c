@@ -27,7 +27,7 @@ static struct {
     SDL_Window* win;
     SDL_GLContext ctx;
     ib_hashmap* texmap;
-    ib_shader* shd_tex, *shd_prim;
+    ib_shader* shd_tex, *shd_prim, *shd_text;
     ib_shader_opts shader_opts;
     int cur_blend, cur_space;
 
@@ -36,6 +36,8 @@ static struct {
     ib_ivec2 camera_pos, camera_size;
 
     unsigned int vao_rect, vbo_rect;
+
+    ib_font* font_debug;
 } _ibg;
 
 /*
@@ -110,6 +112,10 @@ int ib_graphics_init() {
         return ib_err("failed to init prim shader");
     }
 
+    if (!(_ibg.shd_text = ib_shader_alloc(IB_SHADER_FILE("vs_main"), IB_SHADER_FILE("fs_text")))) {
+        return ib_err("failed to init text shader");
+    }
+
     /* initialize rect VAOs */
     ib_vert verts[6] = {
         {{ -1.0f, 1.0f }, { 0.0f, 0.0f }},
@@ -151,6 +157,9 @@ int ib_graphics_init() {
 
     ib_graphics_opt_reset();
 
+    /* initialize fonts */
+    _ibg.font_debug = ib_font_alloc(IB_GRAPHICS_DEBUG_FONT, IB_GRAPHICS_DEBUG_FONT_SIZE);
+
     _ibg.initialized = 1;
     return ib_ok("initialized graphics");
 }
@@ -161,6 +170,20 @@ void ib_graphics_free() {
         ib_warn("not initialized");
         return;
     }
+
+    ib_font_free(_ibg.font_debug);
+
+    ib_shader_free(_ibg.shd_tex);
+    ib_shader_free(_ibg.shd_prim);
+    ib_shader_free(_ibg.shd_text);
+
+    ib_glDeleteBuffers(1, &_ibg.vbo_rect);
+    ib_glDeleteVertexArrays(1, &_ibg.vao_rect);
+
+    ib_hashmap_free(_ibg.texmap);
+    SDL_DestroyWindow(_ibg.win);
+
+    _ibg.initialized = 0;
 }
 
 /* clear screen */
@@ -286,6 +309,58 @@ void ib_graphics_tex_draw_sprite(ib_sprite* s, ib_ivec2 pos) {
     ib_shader_sync_opts(_ibg.shd_tex, &_ibg.shader_opts, 0);
     ib_shader_set_camera(_ibg.shd_tex, *_ibg.mat_transform, 0);
     ib_glDrawArrays(GL_TRIANGLES, 6 * s->cur_frame, 6);
+}
+
+/*
+ * text rendering
+ */
+
+void ib_graphics_text_draw(ib_font* font, ib_ivec2 pos, ib_ivec2 size, ib_ivec2* padding, int flags, const char* fmt, ...) {
+    /* use the debug font if none provided */
+    if (!font) font = _ibg.font_debug;
+
+    /* zero padding default */
+    ib_ivec2 zero = { 0, 0 };
+    if (!padding) padding = &zero;
+
+    /* compute formatted string to render */
+    va_list args;
+    va_start(args, fmt);
+
+    char buf[256] = {0};
+    vsnprintf(buf, sizeof buf, fmt, args);
+
+    va_end(args);
+
+    /* compute total render width to help with alignment */
+    int total_width = font->csize.x * strlen(buf);
+
+    /* compute alignment offsets */
+    ib_ivec2 rpos = pos;
+    rpos.x += padding->x;
+    rpos.y += padding->y;
+
+    if (flags & IB_GRAPHICS_TEXT_CENTER) rpos.x = (pos.x + size.x / 2) - total_width / 2;
+    if (flags & IB_GRAPHICS_TEXT_RIGHT) rpos.x = pos.x + size.x - (padding->x + total_width);
+    if (flags & IB_GRAPHICS_TEXT_VCENTER) rpos.y -= font->csize.y / 2;
+
+    /* bind text shader and set camera, vao */
+    ib_shader_bind(_ibg.shd_text);
+    ib_shader_set_camera(_ibg.shd_text, *_ibg.mat_transform, 0);
+
+    ib_glBindVertexArray(font->vao);
+    ib_texture_bind(font->tex);
+
+    /* render each glyph via the text shader and opt setting */
+    for (char* c = buf; *c; ++c) {
+        ib_graphics_opt_rect(rpos, font->csize);
+        ib_shader_sync_opts(_ibg.shd_text, &_ibg.shader_opts, 0);
+
+        ib_glDrawArrays(GL_TRIANGLES, 6 * *c, 6);
+
+        /* advance for the next character */
+        rpos.x += font->csize.x;
+    }
 }
 
 /*

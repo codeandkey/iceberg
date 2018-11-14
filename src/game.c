@@ -97,6 +97,17 @@ int ib_game_run(void) {
         ib_event_add(IB_EVT_DRAW_WORLD_LIGHTS, NULL, 0);
 
         ib_event_work();
+
+        ib_ivec2 pos = {10, 10}, size = {256, 64};
+        ib_color red = {1, 0, 0, 1};
+        ib_graphics_opt_reset();
+        ib_graphics_opt_color(red);
+        ib_graphics_opt_space(IB_GRAPHICS_SCREENSPACE);
+        ib_graphics_opt_blend(IB_GRAPHICS_BM_ADD);
+        ib_graphics_prim_outline(pos, size);
+
+        ib_graphics_text_draw(NULL, pos, size, NULL, IB_GRAPHICS_TEXT_LEFT, "TEST: %lu", SDL_GetTicks());
+
         ib_graphics_swap();
     }
 
