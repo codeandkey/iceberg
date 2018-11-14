@@ -73,6 +73,7 @@ void ib_graphics_drop_texture(ib_texture* t);
 /* prim rendering */
 void ib_graphics_prim_line(ib_ivec2 a, ib_ivec2 b);
 void ib_graphics_prim_outline(ib_ivec2 pos, ib_ivec2 size);
+void ib_graphics_prim_rect(ib_ivec2 pos, ib_ivec2 size);
 
 /* texture rendering */
 void ib_graphics_tex_draw(ib_texture* t);

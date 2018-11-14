@@ -96,4 +96,7 @@ char* ib_object_get_prop_str(ib_object* p, const char* key, char* def);
 /* helper to auto subscribe/unsubscribe an object from events */
 void ib_object_subscribe(ib_object* p, int evt);
 
+/* get loaded world name */
+const char* ib_world_get_name();
+
 #endif

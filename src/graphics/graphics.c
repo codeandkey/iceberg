@@ -279,6 +279,15 @@ void ib_graphics_prim_outline(ib_ivec2 pos, ib_ivec2 size) {
     ib_graphics_prim_line(tr, br);
 }
 
+void ib_graphics_prim_rect(ib_ivec2 pos, ib_ivec2 size) {
+    ib_shader_bind(_ibg.shd_prim);
+    ib_graphics_opt_rect(pos, size);
+    ib_shader_set_camera(_ibg.shd_prim, *_ibg.mat_transform, 0);
+    ib_shader_sync_opts(_ibg.shd_prim, &_ibg.shader_opts, 0);
+
+    ib_glDrawArrays(GL_TRIANGLES, 0, 6);
+}
+
 /*
  * texture render functions
  */
@@ -353,6 +362,8 @@ void ib_graphics_text_draw(ib_font* font, ib_ivec2 pos, ib_ivec2 size, ib_ivec2*
 
     /* render each glyph via the text shader and opt setting */
     for (char* c = buf; *c; ++c) {
+        if (rpos.x + font->csize.x > pos.x + size.x) break; /* dont render outside of target rect */
+
         ib_graphics_opt_rect(rpos, font->csize);
         ib_shader_sync_opts(_ibg.shd_text, &_ibg.shader_opts, 0);
 

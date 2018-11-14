@@ -50,6 +50,7 @@ static struct {
     ib_object* objects;
     int subd;
     int num_layers;
+    const char* loaded;
 } _ib_world_state;
 
 static int _ib_world_load_layer(xmlNode* n);
@@ -119,6 +120,8 @@ int ib_world_load(const char* path) {
 
     /* looks like it could be a reasonable world, unload the current one */
     _ib_world_unload();
+
+    _ib_world_state.loaded = path;
 
     /* do root parsing here */
     for (cur = root->children; cur; cur = cur->next) {
@@ -719,4 +722,8 @@ int _ib_world_obj_evt_handler(ib_event* e, void* d) {
     ib_object* p = d;
     p->t->evt(e, p);
     return 0;
+}
+
+const char* ib_world_get_name() {
+    return _ib_world_state.loaded;
 }
