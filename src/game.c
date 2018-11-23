@@ -74,7 +74,7 @@ int ib_game_run(void) {
     int debug = ib_config_get_int("debug", 0), fps_framecount = 0, cycles = 0;
 
     float fps = 0.0f;
-    const int fps_divisions = 1; /* approximate FPS faster */
+    const int fps_recalc = 10; /* approximate FPS every n frames */
     const int debug_max_cycles = 1; /* turn red if we exceed this many cycles */
 
     _ib_game_should_quit = 0;
@@ -111,9 +111,8 @@ int ib_game_run(void) {
             ib_color debug_bg = {0.1f, 0.1f, 0.1f, 0.7f}, debug_outline_fg = {0.7f, 0.7f, 0.7f, 1.0f};
             ib_color red = {1, 0, 0, 1};
 
-            fps_framecount++;
-            if (SDL_GetTicks() - fps_ticks > (1000 / fps_divisions)) {
-                fps = fps_framecount * fps_divisions;
+            if (++fps_framecount >= fps_recalc) {
+                fps = (float) (fps_recalc * 1000) / (float) (SDL_GetTicks() - fps_ticks);
                 fps_framecount = 0;
                 fps_ticks = SDL_GetTicks();
             }
@@ -142,7 +141,7 @@ int ib_game_run(void) {
             pos.y += 10;
 
             ib_graphics_text_draw(NULL, pos, size, &padding, 0, "FRAMERATE");
-            ib_graphics_text_draw(NULL, pos, size, &padding, IB_GRAPHICS_TEXT_RIGHT, "%.0f", fps);
+            ib_graphics_text_draw(NULL, pos, size, &padding, IB_GRAPHICS_TEXT_RIGHT, "%.1f", fps);
 
             pos.y += 10;
 
