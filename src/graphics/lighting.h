@@ -25,6 +25,8 @@
  *          blur the shit out of the map and let colors bleed everywhere -- might look cool
  */
 
+#include "../types.h"
+
 /*
  * ambient lighting structures
  * these should be passed to the lighting engine and the ambient lightmap should be generated ONCE (expensive)
@@ -75,5 +77,12 @@ void ib_caster_free(ib_caster* p);
 /*
  * lightmap rendering functions
  */
+
+int ib_lightmap_init(); /* initialize lighting engine */
+void ib_lightmap_free(); /* free up lighting engine */
+
+void ib_lightmap_clear(); /* clear the lightmap */
+void ib_lightmap_gen(); /* regenerate current complete lightmap */
+void ib_lightmap_bind(); /* bind lightmap texture */
 
 #endif
