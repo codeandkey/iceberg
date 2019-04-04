@@ -1,7 +1,7 @@
 ![screenshot](https://github.com/molecuul/iceberg/raw/master/preview.png)
 
 ### iceberg [![Build Status](https://travis-ci.com/molecuul/iceberg.svg?branch=master)](https://travis-ci.com/molecuul/iceberg)
-iceberg is a work-in-progress game/game engine with a functional design
+iceberg is a work-in-progress game with a functional design
 
 ### architecture
 iceberg uses SDL for graphics and OpenAL for audio.
